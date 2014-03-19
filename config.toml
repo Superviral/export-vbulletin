@@ -3,7 +3,9 @@ majorversion = 3
 minorversion = 8
 
 [database]
-server   = "127.0.0.1"
-Port     = 3306
-Username = "root"
-Password = "root"
+server       = "127.0.0.1"
+Port         = 3306
+Database     = "vbulletin"
+Username     = "root"
+Password     = "root"
+TablePrefix  = "vb3_"
