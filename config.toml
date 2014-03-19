@@ -1,0 +1,9 @@
+[vbulletin]
+majorversion = 3
+minorversion = 8
+
+[database]
+server   = "127.0.0.1"
+Port     = 3306
+Username = "root"
+Password = "root"
