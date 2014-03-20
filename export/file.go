@@ -5,7 +5,48 @@ import (
 	"errors"
 	"io/ioutil"
 	"os"
+	"strings"
 )
+
+func FileExists(path string) bool {
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// Splits a filename such as 1234567890 into two parts
+//   path = 123/456/789
+//   filename = 0
+// Used to ensure no greater than 1,000 items per directory
+func SplitFilename(input string) (string, string) {
+
+	var (
+		path     string
+		filename string
+		parts    []string
+		part     string
+	)
+
+	for i, _ := range input {
+		part += input[i : i+1]
+
+		if i < len(input)-1 && len(part) == 3 {
+			parts = append(parts, part)
+			part = ""
+		} else {
+			filename = part
+		}
+	}
+
+	path = strings.Join(parts, "/")
+
+	return path, filename
+}
 
 func WriteFile(path string, data interface{}) error {
 
@@ -32,9 +73,9 @@ func DeleteFile(path string) error {
 	return nil
 }
 
-func MkDir(path string) error {
+func MkDirAll(path string) error {
 
-	err := os.Mkdir(path, 0700)
+	err := os.MkdirAll(path, 0700)
 	if err != nil {
 		return errors.New("Create directory failed: " + path + "\n" + err.Error())
 	}

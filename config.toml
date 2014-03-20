@@ -5,7 +5,7 @@ minorversion = 8
 [database]
 server       = "127.0.0.1"
 Port         = 3306
-Database     = "vbulletin"
+Database     = "lfgss"
 Username     = "root"
 Password     = "root"
-TablePrefix  = "vb3_"
+TablePrefix  = "vb_"

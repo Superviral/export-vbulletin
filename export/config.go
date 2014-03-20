@@ -1,14 +1,12 @@
 package export
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/BurntSushi/toml"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type tomlConfig struct {
@@ -62,7 +60,7 @@ func LoadConfig(configFile string, outputDirectory string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Create it (writable)
-			err = MkDir(config.OutputDirectory)
+			err = MkDirAll(config.OutputDirectory)
 			if err != nil {
 				return err
 			}
@@ -92,15 +90,25 @@ func LoadConfig(configFile string, outputDirectory string) error {
 		config.DB.Database,
 	)
 
-	db, err := sql.Open("mysql", config.DB.ConnectionString)
+	db, err = GetConnection()
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	// defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
 		return err
+	}
+
+	var forumCount int64
+	err = db.QueryRow(`SELECT COUNT(*) FROM ` + config.DB.TablePrefix + `forum`).Scan(&forumCount)
+	if err != nil {
+		return err
+	}
+
+	if forumCount == 0 {
+		return errors.New("vBulletin schema detected, but there are no forums in the database")
 	}
 
 	return nil
