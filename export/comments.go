@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/cheggaaa/pb"
+
 	"github.com/microcosm-cc/export-schemas/go/forum"
 )
 
@@ -55,6 +57,8 @@ SELECT postid
 		ids = append(ids, id)
 	}
 
+	fmt.Println("Exporting comments")
+	bar := pb.StartNew(len(ids))
 	errs := make(chan error)
 	for _, id := range ids {
 		go func(id int64, exportDir string) {
@@ -66,6 +70,8 @@ SELECT postid
 			close(errs)
 			return err
 		}
+
+		bar.Increment()
 	}
 
 	return nil

@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cheggaaa/pb"
+
 	"github.com/microcosm-cc/export-schemas/go/forum"
 )
 
@@ -58,6 +60,8 @@ SELECT userid
 		ids = append(ids, userid)
 	}
 
+	fmt.Println("Exporting users")
+	bar := pb.StartNew(len(ids))
 	errs := make(chan error)
 	for _, userid := range ids {
 		go func(userid int64) {
@@ -69,6 +73,8 @@ SELECT userid
 			close(errs)
 			return err
 		}
+
+		bar.Increment()
 	}
 
 	return nil
