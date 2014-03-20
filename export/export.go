@@ -16,17 +16,17 @@ func Export(configFile string, outputDirectory string) {
 		return
 	}
 
-	err = ExportUsers()
-	if err != nil {
-		HandleErr(err)
-		return
-	}
-
-	// err = ExportComments()
+	// err = ExportUsers()
 	// if err != nil {
 	// 	HandleErr(err)
 	// 	return
 	// }
+
+	err = ExportComments()
+	if err != nil {
+		HandleErr(err)
+		return
+	}
 
 	db.Close()
 }
