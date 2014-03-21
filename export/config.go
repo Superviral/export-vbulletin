@@ -90,16 +90,7 @@ func LoadConfig(configFile string, outputDirectory string) error {
 		config.DB.Database,
 	)
 
-	db, err = GetConnection()
-	if err != nil {
-		return err
-	}
-	// defer db.Close()
-
-	err = db.Ping()
-	if err != nil {
-		return err
-	}
+	GetConnection()
 
 	var forumCount int64
 	err = db.QueryRow(`SELECT COUNT(*) FROM ` + config.DB.TablePrefix + `forum`).Scan(&forumCount)

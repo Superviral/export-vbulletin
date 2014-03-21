@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/cheggaaa/pb"
@@ -25,59 +26,58 @@ type vbUser struct {
 	Options        int64
 }
 
-func ExportUsers() error {
+func ExportUsers() {
 
 	exportDir := fmt.Sprintf("%susers/", config.OutputDirectory)
 	if !FileExists(exportDir) {
-		err := MkDirAll(exportDir)
-		if err != nil {
-			return err
-		}
+		HandleErr(MkDirAll(exportDir))
 	}
 
 	stmt, err := db.Prepare(`
 SELECT userid
   FROM ` + config.DB.TablePrefix + `user
  ORDER BY userid ASC`)
-	if err != nil {
-		return err
-	}
+	HandleErr(err)
 	defer stmt.Close()
 
 	rows, err := stmt.Query()
-	if err != nil {
-		return err
-	}
+	HandleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
-		var userid int64
-		err = rows.Scan(&userid)
-		if err != nil {
-			return err
-		}
-		ids = append(ids, userid)
+		var id int64
+		HandleErr(rows.Scan(&id))
+		ids = append(ids, id)
 	}
+	HandleErr(rows.Err())
 
 	fmt.Println("Exporting users")
-	bar := pb.StartNew(len(ids))
-	errs := make(chan error)
-	for _, userid := range ids {
-		go func(userid int64) {
-			errs <- ExportUser(userid, exportDir)
-		}(userid)
 
-		err = <-errs
-		if err != nil {
-			close(errs)
-			return err
+	bar := pb.StartNew(len(ids))
+
+	var wg sync.WaitGroup
+	wg.Add(len(ids))
+
+	errs := make(chan error)
+	defer close(errs)
+
+	go func(exportDir string) {
+		for _, id := range ids {
+			errs <- ExportUser(id, exportDir)
+			wg.Done()
 		}
+	}(exportDir)
+
+	for i := 0; i < len(ids); i++ {
+		err := <-errs
+		HandleErr(err)
 
 		bar.Increment()
 	}
+	bar.Finish()
 
-	return nil
+	wg.Wait()
 }
 
 func ExportUser(id int64, exportDir string) error {

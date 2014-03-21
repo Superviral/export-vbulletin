@@ -3,6 +3,7 @@ package export
 import (
 	"fmt"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/cheggaaa/pb"
@@ -22,59 +23,57 @@ type vbPost struct {
 	Visible     int64
 }
 
-func ExportComments() error {
+func ExportComments() {
 
 	exportDir := fmt.Sprintf("%scomments/", config.OutputDirectory)
 	if !FileExists(exportDir) {
-		err := MkDirAll(exportDir)
-		if err != nil {
-			return err
-		}
+		HandleErr(MkDirAll(exportDir))
 	}
 
 	stmt, err := db.Prepare(`
 SELECT postid
   FROM ` + config.DB.TablePrefix + `post
  ORDER BY postid ASC`)
-	if err != nil {
-		return err
-	}
+	HandleErr(err)
 	defer stmt.Close()
 
 	rows, err := stmt.Query()
-	if err != nil {
-		return err
-	}
+	HandleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		err = rows.Scan(&id)
-		if err != nil {
-			return err
-		}
+		HandleErr(rows.Scan(&id))
 		ids = append(ids, id)
 	}
+	HandleErr(rows.Err())
 
 	fmt.Println("Exporting comments")
 	bar := pb.StartNew(len(ids))
-	errs := make(chan error)
-	for _, id := range ids {
-		go func(id int64, exportDir string) {
-			errs <- ExportComment(id, exportDir)
-		}(id, exportDir)
 
-		err = <-errs
-		if err != nil {
-			close(errs)
-			return err
+	var wg sync.WaitGroup
+	wg.Add(len(ids))
+
+	errs := make(chan error)
+	defer close(errs)
+
+	go func(exportDir string) {
+		for _, id := range ids {
+			errs <- ExportComment(id, exportDir)
+			wg.Done()
 		}
+	}(exportDir)
+
+	for i := 0; i < len(ids); i++ {
+		err := <-errs
+		HandleErr(err)
 
 		bar.Increment()
 	}
+	bar.Finish()
 
-	return nil
+	wg.Wait()
 }
 
 func ExportComment(id int64, exportDir string) error {

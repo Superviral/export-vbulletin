@@ -2,31 +2,41 @@ package export
 
 import (
 	"fmt"
+	"os"
 )
 
 func HandleErr(err error) {
-	db.Close()
-	fmt.Println(err)
+	if err != nil {
+		if db != nil {
+			db.Close()
+		}
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func HandleErrMsg(err error, msg string) {
+	if err != nil {
+		fmt.Println(msg)
+		HandleErr(err)
+	}
 }
 
 func Export(configFile string, outputDirectory string) {
-	err := LoadConfig(configFile, outputDirectory)
-	if err != nil {
-		HandleErr(err)
-		return
-	}
+	LoadConfig(configFile, outputDirectory)
 
-	err = ExportUsers()
-	if err != nil {
-		HandleErr(err)
-		return
-	}
+	// ExportForums()
+	// ExportConversations()
+	// ExportMessages()
+	// ExportFollows()
+	// ExportAttachments()
 
-	err = ExportComments()
-	if err != nil {
-		HandleErr(err)
-		return
-	}
+	// ### DONE ###
+	ExportUsers()
+	ExportUserGroups()
+	ExportComments()
 
-	db.Close()
+	if db != nil {
+		db.Close()
+	}
 }
