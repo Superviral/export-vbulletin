@@ -25,16 +25,16 @@ func HandleErrMsg(err error, msg string) {
 func Export(configFile string, outputDirectory string) {
 	LoadConfig(configFile, outputDirectory)
 
-	// ExportForums()
+	ExportForums()
 	// ExportConversations()
 	// ExportMessages()
 	// ExportFollows()
 	// ExportAttachments()
 
 	// ### DONE ###
-	ExportUsers()
-	ExportUserGroups()
-	ExportComments()
+	// ExportUsers()
+	// ExportUserGroups()
+	// ExportComments()
 
 	if db != nil {
 		db.Close()

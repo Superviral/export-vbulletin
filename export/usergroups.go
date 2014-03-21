@@ -160,7 +160,6 @@ SELECT usergroupid
 	perms.OpenOwn = vb.ForumPermissions&1024 != 0
 	ex.ForumPermissions = perms
 
-	// TODO: add users to the group
 	stmt2, err := db.Prepare(`
 SELECT userid
   FROM ` + config.DB.TablePrefix + `user
@@ -186,6 +185,7 @@ SELECT userid
 		}
 		ids = append(ids, id)
 	}
+	HandleErr(rows.Err())
 	ex.Users = ids
 
 	err = WriteFile(filename, ex)
