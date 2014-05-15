@@ -10,12 +10,13 @@ import (
 )
 
 type tomlConfig struct {
-	OutputDirectory string    `toml:"-"`
-	Forum           vBulletin `toml:"vbulletin"`
-	DB              database  `toml:"database"`
+	Export export   `toml:"export"`
+	Forum  forum    `toml:"forum"`
+	DB     database `toml:"database"`
 }
 
-type vBulletin struct {
+type forum struct {
+	Product      string
 	MajorVersion int
 	MinorVersion int
 }
@@ -30,17 +31,21 @@ type database struct {
 	TablePrefix      string
 }
 
+type export struct {
+	OutputDirectory string
+}
+
 var (
 	config tomlConfig
 )
 
-func LoadConfig(configFile string, outputDirectory string) error {
+func LoadConfig(configFile string) error {
 	if _, err := toml.DecodeFile(configFile, &config); err != nil {
 		return err
 	}
 
 	if config.Forum.MajorVersion == 0 || config.Forum.MinorVersion == 0 {
-		return errors.New("vBulletin version missing from config " + configFile)
+		return errors.New("Forum version missing from config " + configFile)
 	}
 
 	if config.DB.Server == "" ||
@@ -51,16 +56,19 @@ func LoadConfig(configFile string, outputDirectory string) error {
 		return errors.New("MySQL connection information incomplete/missing in config " + configFile)
 	}
 
-	config.OutputDirectory = outputDirectory
-	if !strings.HasSuffix(config.OutputDirectory, "/") {
-		config.OutputDirectory += "/"
+	if config.Export.OutputDirectory == "" {
+		config.Export.OutputDirectory = "./exported/"
 	}
 
-	fileInf, err := os.Stat(config.OutputDirectory)
+	if !strings.HasSuffix(config.Export.OutputDirectory, "/") {
+		config.Export.OutputDirectory += "/"
+	}
+
+	fileInf, err := os.Stat(config.Export.OutputDirectory)
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Create it (writable)
-			err = MkDirAll(config.OutputDirectory)
+			err = MkDirAll(config.Export.OutputDirectory)
 			if err != nil {
 				return err
 			}
@@ -70,12 +78,12 @@ func LoadConfig(configFile string, outputDirectory string) error {
 		}
 	} else {
 		if !fileInf.IsDir() {
-			return errors.New("Output directory exists, and is a file not a directory: " + config.OutputDirectory)
+			return errors.New("Output directory exists, and is a file not a directory: " + config.Export.OutputDirectory)
 		}
 	}
 
 	// Test we can write to it
-	tmpFile := config.OutputDirectory + "tmp"
+	tmpFile := config.Export.OutputDirectory + "tmp"
 	err = WriteFile(tmpFile, "hello")
 	if err != nil {
 		return errors.New("Could not create tmp file " + tmpFile + " , no write permissions?\n" + err.Error())

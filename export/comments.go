@@ -3,13 +3,12 @@ package export
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb"
-
-	"github.com/microcosm-cc/export-schemas/go/forum"
+	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
+
+const commentDir = `comments/`
 
 type vbPost struct {
 	PostId      int64
@@ -25,19 +24,14 @@ type vbPost struct {
 
 func ExportComments() {
 
-	exportDir := fmt.Sprintf("%scomments/", config.OutputDirectory)
-	if !FileExists(exportDir) {
-		HandleErr(MkDirAll(exportDir))
+	if !FileExists(config.Export.OutputDirectory + commentDir) {
+		HandleErr(MkDirAll(config.Export.OutputDirectory + commentDir))
 	}
 
-	stmt, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT postid
   FROM ` + config.DB.TablePrefix + `post
  ORDER BY postid ASC`)
-	HandleErr(err)
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
 	HandleErr(err)
 	defer rows.Close()
 
@@ -48,39 +42,17 @@ SELECT postid
 		ids = append(ids, id)
 	}
 	HandleErr(rows.Err())
+	rows.Close()
 
 	fmt.Println("Exporting comments")
-	bar := pb.StartNew(len(ids))
-
-	var wg sync.WaitGroup
-	wg.Add(len(ids))
-
-	errs := make(chan error)
-	defer close(errs)
-
-	go func(exportDir string) {
-		for _, id := range ids {
-			errs <- ExportComment(id, exportDir)
-			wg.Done()
-		}
-	}(exportDir)
-
-	for i := 0; i < len(ids); i++ {
-		err := <-errs
-		HandleErr(err)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	wg.Wait()
+	RunDBTasks(ids, ExportComment)
 }
 
-func ExportComment(id int64, exportDir string) error {
+func ExportComment(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := SplitFilename(strconv.FormatInt(id, 10))
-	path = exportDir + path
+	path = config.Export.OutputDirectory + commentDir + path
 
 	if !FileExists(path) {
 		err := MkDirAll(path)
@@ -97,7 +69,8 @@ func ExportComment(id int64, exportDir string) error {
 		return nil
 	}
 
-	stmt, err := db.Prepare(`
+	vb := vbPost{}
+	err := db.QueryRow(`
 SELECT postid
       ,threadid
       ,parentid
@@ -107,15 +80,10 @@ SELECT postid
       ,pagetext
       ,ipaddress
       ,visible
-  FROM ` + config.DB.TablePrefix + `post
- WHERE postid = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	vb := vbPost{}
-	err = stmt.QueryRow(id).Scan(
+  FROM `+config.DB.TablePrefix+`post
+ WHERE postid = ?`,
+		id,
+	).Scan(
 		&vb.PostId,
 		&vb.ThreadId,
 		&vb.ParentId,
@@ -130,7 +98,7 @@ SELECT postid
 		return err
 	}
 
-	ex := forum.Comment{}
+	ex := f.Comment{}
 	ex.Id = vb.PostId
 	ex.OnType = "conversation"
 	ex.OnId = vb.ThreadId
@@ -141,7 +109,7 @@ SELECT postid
 	ex.Moderated = (vb.Visible == 0)
 	ex.Deleted = (vb.Visible == 2)
 
-	version := forum.CommentVersion{}
+	version := f.CommentVersion{}
 	version.DateModified = time.Unix(vb.DateCreated, 0).UTC()
 	version.Headline = vb.Title
 	version.Text = vb.PageText

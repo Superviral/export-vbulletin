@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb"
-
-	"github.com/microcosm-cc/export-schemas/go/forum"
+	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
+
+const userDir = `users/`
 
 type vbUser struct {
 	UserId         int64
@@ -28,19 +27,14 @@ type vbUser struct {
 
 func ExportUsers() {
 
-	exportDir := fmt.Sprintf("%susers/", config.OutputDirectory)
-	if !FileExists(exportDir) {
-		HandleErr(MkDirAll(exportDir))
+	if !FileExists(config.Export.OutputDirectory + userDir) {
+		HandleErr(MkDirAll(config.Export.OutputDirectory + userDir))
 	}
 
-	stmt, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT userid
   FROM ` + config.DB.TablePrefix + `user
  ORDER BY userid ASC`)
-	HandleErr(err)
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
 	HandleErr(err)
 	defer rows.Close()
 
@@ -51,40 +45,17 @@ SELECT userid
 		ids = append(ids, id)
 	}
 	HandleErr(rows.Err())
+	rows.Close()
 
 	fmt.Println("Exporting users")
-
-	bar := pb.StartNew(len(ids))
-
-	var wg sync.WaitGroup
-	wg.Add(len(ids))
-
-	errs := make(chan error)
-	defer close(errs)
-
-	go func(exportDir string) {
-		for _, id := range ids {
-			errs <- ExportUser(id, exportDir)
-			wg.Done()
-		}
-	}(exportDir)
-
-	for i := 0; i < len(ids); i++ {
-		err := <-errs
-		HandleErr(err)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	wg.Wait()
+	RunDBTasks(ids, ExportUser)
 }
 
-func ExportUser(id int64, exportDir string) error {
+func ExportUser(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := SplitFilename(strconv.FormatInt(id, 10))
-	path = exportDir + path
+	path = config.Export.OutputDirectory + userDir + path
 
 	if !FileExists(path) {
 		err := MkDirAll(path)
@@ -101,7 +72,8 @@ func ExportUser(id int64, exportDir string) error {
 	}
 
 	// Fetch the user
-	stmt, err := db.Prepare(`
+	vb := vbUser{}
+	err := db.QueryRow(`
 SELECT u.userid
       ,u.usergroupid
       ,u.membergroupids
@@ -113,16 +85,11 @@ SELECT u.userid
       ,u.ipaddress
       ,IF(ub.userid, true, false) AS banned
       ,u.options
-  FROM ` + config.DB.TablePrefix + `user u
-       LEFT JOIN ` + config.DB.TablePrefix + `userban ub ON u.userid = ub.userid
- WHERE u.userid = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	vb := vbUser{}
-	err = stmt.QueryRow(id).Scan(
+  FROM `+config.DB.TablePrefix+`user u
+       LEFT JOIN `+config.DB.TablePrefix+`userban ub ON u.userid = ub.userid
+ WHERE u.userid = ?`,
+		id,
+	).Scan(
 		&vb.UserId,
 		&vb.UserGroupId,
 		&vb.MemberGroupIds,
@@ -141,7 +108,7 @@ SELECT u.userid
 
 	// Map the user into our structure performing any translations needed
 
-	ex := forum.User{}
+	ex := f.User{}
 	ex.Id = vb.UserId
 	ex.Name = vb.Username
 	ex.Email = vb.Email
@@ -150,8 +117,8 @@ SELECT u.userid
 	ex.IpAddress = vb.IpAddress
 	ex.Banned = vb.Banned
 
-	usergroups := []forum.Id{}
-	usergroups = append(usergroups, forum.Id{Id: vb.UserGroupId})
+	usergroups := []f.Id{}
+	usergroups = append(usergroups, f.Id{Id: vb.UserGroupId})
 	if vb.MemberGroupIds != "" {
 		groups := strings.Split(vb.MemberGroupIds, ",")
 		for _, group := range groups {
@@ -159,7 +126,7 @@ SELECT u.userid
 			if err != nil {
 				return err
 			}
-			usergroups = append(usergroups, forum.Id{Id: groupId})
+			usergroups = append(usergroups, f.Id{Id: groupId})
 		}
 	}
 	ex.Usergroups = usergroups

@@ -3,7 +3,6 @@ package export
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -50,14 +49,16 @@ func SplitFilename(input string) (string, string) {
 
 func WriteFile(path string, data interface{}) error {
 
-	b, err := json.Marshal(data)
+	file, err := os.Create(path)
+	if err != nil {
+		return errors.New("Cannot create file: " + err.Error())
+	}
+	defer file.Close()
+
+	enc := json.NewEncoder(file)
+	err = enc.Encode(data)
 	if err != nil {
 		return errors.New("Cannot encode data")
-	}
-
-	err = ioutil.WriteFile(path, b, 0600)
-	if err != nil {
-		return errors.New("Cannot write file: " + err.Error())
 	}
 
 	return nil

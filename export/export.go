@@ -22,8 +22,8 @@ func HandleErrMsg(err error, msg string) {
 	}
 }
 
-func Export(configFile string, outputDirectory string) {
-	LoadConfig(configFile, outputDirectory)
+func Export(configFile string) {
+	LoadConfig(configFile)
 
 	// ExportMessages()
 	// ExportFollows()

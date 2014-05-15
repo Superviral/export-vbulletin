@@ -1,1 +1,4 @@
-rm -rf exported/ && go build && ./export-vbulletin
+rm -rf exported/ && \
+  go vet && \
+  go build && \
+  ./export-vbulletin

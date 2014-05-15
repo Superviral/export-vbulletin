@@ -3,12 +3,11 @@ package export
 import (
 	"fmt"
 	"strconv"
-	"sync"
 
-	"github.com/cheggaaa/pb"
-
-	"github.com/microcosm-cc/export-schemas/go/forum"
+	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
+
+const usergroupDir = `usergroups/`
 
 type vbUserGroup struct {
 	UserGroupId      int64
@@ -19,19 +18,14 @@ type vbUserGroup struct {
 
 func ExportUserGroups() {
 
-	exportDir := fmt.Sprintf("%susergroups/", config.OutputDirectory)
-	if !FileExists(exportDir) {
-		HandleErr(MkDirAll(exportDir))
+	if !FileExists(config.Export.OutputDirectory + usergroupDir) {
+		HandleErr(MkDirAll(config.Export.OutputDirectory + usergroupDir))
 	}
 
-	stmt, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT usergroupid
   FROM ` + config.DB.TablePrefix + `usergroup
  ORDER BY usergroupid ASC`)
-	HandleErr(err)
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
 	HandleErr(err)
 	defer rows.Close()
 
@@ -42,40 +36,17 @@ SELECT usergroupid
 		ids = append(ids, id)
 	}
 	HandleErr(rows.Err())
+	rows.Close()
 
 	fmt.Println("Exporting usergroups")
-
-	bar := pb.StartNew(len(ids))
-
-	var wg sync.WaitGroup
-	wg.Add(len(ids))
-
-	errs := make(chan error)
-	defer close(errs)
-
-	go func(exportDir string) {
-		for _, id := range ids {
-			errs <- ExportUserGroup(id, exportDir)
-			wg.Done()
-		}
-	}(exportDir)
-
-	for i := 0; i < len(ids); i++ {
-		err := <-errs
-		HandleErr(err)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	wg.Wait()
+	RunDBTasks(ids, ExportUserGroup)
 }
 
-func ExportUserGroup(id int64, exportDir string) error {
+func ExportUserGroup(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := SplitFilename(strconv.FormatInt(id, 10))
-	path = exportDir + path
+	path = config.Export.OutputDirectory + usergroupDir + path
 
 	if !FileExists(path) {
 		err := MkDirAll(path)
@@ -92,20 +63,16 @@ func ExportUserGroup(id int64, exportDir string) error {
 		return nil
 	}
 
-	stmt, err := db.Prepare(`
+	vb := vbUserGroup{}
+	err := db.QueryRow(`
 SELECT usergroupid
       ,title
       ,description
       ,forumpermissions
-  FROM ` + config.DB.TablePrefix + `usergroup
- WHERE usergroupid = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	vb := vbUserGroup{}
-	err = stmt.QueryRow(id).Scan(
+  FROM `+config.DB.TablePrefix+`usergroup
+ WHERE usergroupid = ?`,
+		id,
+	).Scan(
 		&vb.UserGroupId,
 		&vb.Title,
 		&vb.Description,
@@ -115,7 +82,7 @@ SELECT usergroupid
 		return err
 	}
 
-	ex := forum.Usergroup{}
+	ex := f.Usergroup{}
 	ex.Id = vb.UserGroupId
 	ex.Name = vb.Title
 	ex.Text = vb.Description
@@ -149,7 +116,7 @@ SELECT usergroupid
 	// 	<bitfield name="candeletetagown"       group="post_thread_permissions"    >4194304</bitfield>
 	// 	<bitfield name="canseethumbnails"      group="forum_viewing_permissions"  >8388608</bitfield>
 	// </group>
-	perms := forum.ForumPermissions{}
+	perms := f.ForumPermissions{}
 	perms.View = vb.ForumPermissions&1 != 0
 	perms.PostNew = vb.ForumPermissions&16 != 0
 	perms.EditOwn = vb.ForumPermissions&128 != 0
@@ -160,32 +127,34 @@ SELECT usergroupid
 	perms.OpenOwn = vb.ForumPermissions&1024 != 0
 	ex.ForumPermissions = perms
 
-	stmt2, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT userid
-  FROM ` + config.DB.TablePrefix + `user
+  FROM `+config.DB.TablePrefix+`user
  WHERE usergroupid = ?
-    OR find_in_set(?, membergroupids) <> 0`)
-	if err != nil {
-		return err
-	}
-	defer stmt2.Close()
-
-	rows, err := stmt2.Query(id, id)
+    OR find_in_set(?, membergroupids) <> 0`,
+		id,
+		id,
+	)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	ids := []forum.Id{}
+	ids := []f.Id{}
 	for rows.Next() {
-		id := forum.Id{}
+		id := f.Id{}
 		err = rows.Scan(&id.Id)
 		if err != nil {
 			return err
 		}
 		ids = append(ids, id)
 	}
-	HandleErr(rows.Err())
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	rows.Close()
+
 	ex.Users = ids
 
 	err = WriteFile(filename, ex)

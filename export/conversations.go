@@ -3,13 +3,12 @@ package export
 import (
 	"fmt"
 	"strconv"
-	"sync"
 	"time"
 
-	"github.com/cheggaaa/pb"
-
-	"github.com/microcosm-cc/export-schemas/go/forum"
+	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
+
+const conversationDir = `conversations/`
 
 type vbThread struct {
 	ThreadId    int64
@@ -26,19 +25,14 @@ type vbThread struct {
 
 func ExportConversations() {
 
-	exportDir := fmt.Sprintf("%sconversations/", config.OutputDirectory)
-	if !FileExists(exportDir) {
-		HandleErr(MkDirAll(exportDir))
+	if !FileExists(config.Export.OutputDirectory + conversationDir) {
+		HandleErr(MkDirAll(config.Export.OutputDirectory + conversationDir))
 	}
 
-	stmt, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT threadid
   FROM ` + config.DB.TablePrefix + `thread
  ORDER BY threadid ASC`)
-	HandleErr(err)
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
 	HandleErr(err)
 	defer rows.Close()
 
@@ -49,39 +43,17 @@ SELECT threadid
 		ids = append(ids, id)
 	}
 	HandleErr(rows.Err())
+	rows.Close()
 
 	fmt.Println("Exporting conversations")
-	bar := pb.StartNew(len(ids))
-
-	var wg sync.WaitGroup
-	wg.Add(len(ids))
-
-	errs := make(chan error)
-	defer close(errs)
-
-	go func(exportDir string) {
-		for _, id := range ids {
-			errs <- ExportConversation(id, exportDir)
-			wg.Done()
-		}
-	}(exportDir)
-
-	for i := 0; i < len(ids); i++ {
-		err := <-errs
-		HandleErr(err)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	wg.Wait()
+	RunDBTasks(ids, ExportConversation)
 }
 
-func ExportConversation(id int64, exportDir string) error {
+func ExportConversation(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := SplitFilename(strconv.FormatInt(id, 10))
-	path = exportDir + path
+	path = config.Export.OutputDirectory + conversationDir + path
 
 	if !FileExists(path) {
 		err := MkDirAll(path)
@@ -98,7 +70,8 @@ func ExportConversation(id int64, exportDir string) error {
 		return nil
 	}
 
-	stmt, err := db.Prepare(`
+	vb := vbThread{}
+	err := db.QueryRow(`
 SELECT t.threadid
       ,t.title
       ,COALESCE(p.text, '') AS prefix
@@ -109,17 +82,12 @@ SELECT t.threadid
       ,t.visible
       ,t.sticky
       ,t.pollid
-  FROM ` + config.DB.TablePrefix + `thread t
-       LEFT JOIN ` + config.DB.TablePrefix + `phrase p ON
+  FROM `+config.DB.TablePrefix+`thread t
+       LEFT JOIN `+config.DB.TablePrefix+`phrase p ON
             p.varname = CONCAT('prefix_', t.prefixid, '_title_plain')
- WHERE t.threadid = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	vb := vbThread{}
-	err = stmt.QueryRow(id).Scan(
+ WHERE t.threadid = ?`,
+		id,
+	).Scan(
 		&vb.ThreadId,
 		&vb.Title,
 		&vb.Prefix,
@@ -135,7 +103,7 @@ SELECT t.threadid
 		return err
 	}
 
-	ex := forum.Conversation{}
+	ex := f.Conversation{}
 
 	ex.Id = vb.ThreadId
 	ex.ForumId = vb.ForumId

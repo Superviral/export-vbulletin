@@ -20,12 +20,7 @@ func main() {
 		"config.toml",
 		"location of config file in TOML format; defaults to config.toml",
 	)
-	outputDirectory := flag.String(
-		"o",
-		"exported",
-		"path to where the exported files will be created; defaults to ./exported",
-	)
 	flag.Parse()
 
-	export.Export(*configFile, *outputDirectory)
+	export.Export(*configFile)
 }

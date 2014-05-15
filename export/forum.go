@@ -3,12 +3,11 @@ package export
 import (
 	"fmt"
 	"strconv"
-	"sync"
 
-	"github.com/cheggaaa/pb"
-
-	"github.com/microcosm-cc/export-schemas/go/forum"
+	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
+
+const forumDir = `forums/`
 
 type vbForum struct {
 	ForumId      int64
@@ -20,22 +19,17 @@ type vbForum struct {
 
 func ExportForums() {
 
-	exportDir := fmt.Sprintf("%sforums/", config.OutputDirectory)
-	if !FileExists(exportDir) {
-		HandleErr(MkDirAll(exportDir))
+	if !FileExists(config.Export.OutputDirectory + forumDir) {
+		HandleErr(MkDirAll(config.Export.OutputDirectory + forumDir))
 	}
 
 	// vBulletin has the notion of forums that are just hyperlinks to somewhere
 	// else. We skip these are they are not forums.
-	stmt, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT forumid
   FROM ` + config.DB.TablePrefix + `forum
  WHERE link = ''
  ORDER BY forumid ASC`)
-	HandleErr(err)
-	defer stmt.Close()
-
-	rows, err := stmt.Query()
 	HandleErr(err)
 	defer rows.Close()
 
@@ -46,40 +40,17 @@ SELECT forumid
 		ids = append(ids, id)
 	}
 	HandleErr(rows.Err())
+	rows.Close()
 
 	fmt.Println("Exporting forums")
-
-	bar := pb.StartNew(len(ids))
-
-	var wg sync.WaitGroup
-	wg.Add(len(ids))
-
-	errs := make(chan error)
-	defer close(errs)
-
-	go func(exportDir string) {
-		for _, id := range ids {
-			errs <- ExportForum(id, exportDir)
-			wg.Done()
-		}
-	}(exportDir)
-
-	for i := 0; i < len(ids); i++ {
-		err := <-errs
-		HandleErr(err)
-
-		bar.Increment()
-	}
-	bar.Finish()
-
-	wg.Wait()
+	RunDBTasks(ids, ExportForum)
 }
 
-func ExportForum(id int64, exportDir string) error {
+func ExportForum(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := SplitFilename(strconv.FormatInt(id, 10))
-	path = exportDir + path
+	path = config.Export.OutputDirectory + forumDir + path
 
 	if !FileExists(path) {
 		err := MkDirAll(path)
@@ -96,21 +67,17 @@ func ExportForum(id int64, exportDir string) error {
 		return nil
 	}
 
-	stmt, err := db.Prepare(`
+	vb := vbForum{}
+	err := db.QueryRow(`
 SELECT forumid
       ,title
       ,description
       ,options
       ,displayorder
-  FROM ` + config.DB.TablePrefix + `forum
- WHERE forumid = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
-
-	vb := vbForum{}
-	err = stmt.QueryRow(id).Scan(
+  FROM `+config.DB.TablePrefix+`forum
+ WHERE forumid = ?`,
+		id,
+	).Scan(
 		&vb.ForumId,
 		&vb.Title,
 		&vb.Description,
@@ -121,7 +88,7 @@ SELECT forumid
 		return err
 	}
 
-	ex := forum.Forum{}
+	ex := f.Forum{}
 	ex.Id = vb.ForumId
 	ex.Name = vb.Title
 	ex.Text = vb.Description
@@ -153,24 +120,20 @@ SELECT forumid
 	ex.Moderated = vb.Options&16 != 0
 
 	// Forum moderators
-	stmt2, err := db.Prepare(`
+	rows, err := db.Query(`
 SELECT userid
-  FROM ` + config.DB.TablePrefix + `moderator
- WHERE forumid = ?`)
-	if err != nil {
-		return err
-	}
-	defer stmt2.Close()
-
-	rows, err := stmt2.Query(id)
+  FROM `+config.DB.TablePrefix+`moderator
+ WHERE forumid = ?`,
+		id,
+	)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	mods := []forum.Id{}
+	mods := []f.Id{}
 	for rows.Next() {
-		mod := forum.Id{}
+		mod := f.Id{}
 		err = rows.Scan(&mod.Id)
 		if err != nil {
 			return err
@@ -178,26 +141,27 @@ SELECT userid
 
 		mods = append(mods, mod)
 	}
-	ex.Moderators = mods
-
-	// Forum specific usergroup permissions
-	stmt3, err := db.Prepare(`
-SELECT usergroupid
-      ,forumpermissions
-  FROM ` + config.DB.TablePrefix + `forumpermission
- WHERE forumid = ?`)
+	err = rows.Err()
 	if err != nil {
 		return err
 	}
-	defer stmt3.Close()
+	rows.Close()
+	ex.Moderators = mods
 
-	rows, err = stmt3.Query(id)
+	// Forum specific usergroup permissions
+	rows, err = db.Query(`
+SELECT usergroupid
+      ,forumpermissions
+  FROM `+config.DB.TablePrefix+`forumpermission
+ WHERE forumid = ?`,
+		id,
+	)
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 
-	usergroups := []forum.Usergroup{}
+	usergroups := []f.Usergroup{}
 	for rows.Next() {
 		var (
 			usergroupid      int64
@@ -239,7 +203,7 @@ SELECT usergroupid
 		// 	<bitfield name="candeletetagown"       group="post_thread_permissions"    >4194304</bitfield>
 		// 	<bitfield name="canseethumbnails"      group="forum_viewing_permissions"  >8388608</bitfield>
 		// </group>
-		perms := forum.ForumPermissions{}
+		perms := f.ForumPermissions{}
 		perms.View = forumpermissions&1 != 0
 		perms.PostNew = forumpermissions&16 != 0
 		perms.EditOwn = forumpermissions&128 != 0
@@ -249,13 +213,17 @@ SELECT usergroupid
 		perms.CloseOwn = forumpermissions&1024 != 0
 		perms.OpenOwn = forumpermissions&1024 != 0
 
-		ug := forum.Usergroup{}
+		ug := f.Usergroup{}
 		ug.Id = usergroupid
 		ug.ForumPermissions = perms
 
 		usergroups = append(usergroups, ug)
 	}
-	HandleErr(rows.Err())
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	rows.Close()
 	ex.Usergroups = usergroups
 
 	err = WriteFile(filename, ex)
