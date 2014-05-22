@@ -109,16 +109,16 @@ SELECT u.userid
 	// Map the user into our structure performing any translations needed
 
 	ex := f.User{}
-	ex.Id = vb.UserId
+	ex.ID = vb.UserId
 	ex.Name = vb.Username
 	ex.Email = vb.Email
 	ex.DateCreated = time.Unix(vb.JoinDate, 0).UTC()
 	ex.LastActive = time.Unix(vb.LastVisit, 0).UTC()
-	ex.IpAddress = vb.IpAddress
+	ex.IPAddress = vb.IpAddress
 	ex.Banned = vb.Banned
 
-	usergroups := []f.Id{}
-	usergroups = append(usergroups, f.Id{Id: vb.UserGroupId})
+	usergroups := []f.ID{}
+	usergroups = append(usergroups, f.ID{ID: vb.UserGroupId})
 	if vb.MemberGroupIds != "" {
 		groups := strings.Split(vb.MemberGroupIds, ",")
 		for _, group := range groups {
@@ -126,7 +126,7 @@ SELECT u.userid
 			if err != nil {
 				return err
 			}
-			usergroups = append(usergroups, f.Id{Id: groupId})
+			usergroups = append(usergroups, f.ID{ID: groupId})
 		}
 	}
 	ex.Usergroups = usergroups

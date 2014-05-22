@@ -99,12 +99,12 @@ SELECT postid
 	}
 
 	ex := f.Comment{}
-	ex.Id = vb.PostId
+	ex.ID = vb.PostId
 	ex.OnType = "conversation"
-	ex.OnId = vb.ThreadId
+	ex.OnID = vb.ThreadId
 	ex.InReplyTo = vb.ParentId
 	ex.Author = vb.UserId
-	ex.IpAddress = vb.IpAddress
+	ex.IPAddress = vb.IpAddress
 	ex.DateCreated = time.Unix(vb.DateCreated, 0).UTC()
 	ex.Moderated = (vb.Visible == 0)
 	ex.Deleted = (vb.Visible == 2)
@@ -113,7 +113,7 @@ SELECT postid
 	version.DateModified = time.Unix(vb.DateCreated, 0).UTC()
 	version.Headline = vb.Title
 	version.Text = vb.PageText
-	version.IpAddress = vb.IpAddress
+	version.IPAddress = vb.IpAddress
 	version.Editor = vb.UserId
 	ex.Versions = append(ex.Versions, version)
 

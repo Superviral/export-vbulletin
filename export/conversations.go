@@ -105,8 +105,8 @@ SELECT t.threadid
 
 	ex := f.Conversation{}
 
-	ex.Id = vb.ThreadId
-	ex.ForumId = vb.ForumId
+	ex.ID = vb.ThreadId
+	ex.ForumID = vb.ForumId
 
 	if vb.Prefix == "" {
 		ex.Name = vb.Title

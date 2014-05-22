@@ -3,11 +3,16 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/microcosm-cc/export-vbulletin/export"
 	"os"
+	"runtime"
+
+	"github.com/microcosm-cc/export-vbulletin/export"
 )
 
 func main() {
+
+	// Go as fast as we can
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s\n", os.Args[0])

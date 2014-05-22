@@ -83,7 +83,7 @@ SELECT usergroupid
 	}
 
 	ex := f.Usergroup{}
-	ex.Id = vb.UserGroupId
+	ex.ID = vb.UserGroupId
 	ex.Name = vb.Title
 	ex.Text = vb.Description
 	ex.Banned = (vb.ForumPermissions == 0)
@@ -140,10 +140,10 @@ SELECT userid
 	}
 	defer rows.Close()
 
-	ids := []f.Id{}
+	ids := []f.ID{}
 	for rows.Next() {
-		id := f.Id{}
-		err = rows.Scan(&id.Id)
+		id := f.ID{}
+		err = rows.Scan(&id.ID)
 		if err != nil {
 			return err
 		}

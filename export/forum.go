@@ -89,7 +89,7 @@ SELECT forumid
 	}
 
 	ex := f.Forum{}
-	ex.Id = vb.ForumId
+	ex.ID = vb.ForumId
 	ex.Name = vb.Title
 	ex.Text = vb.Description
 	ex.DisplayOrder = vb.DisplayOrder
@@ -131,10 +131,10 @@ SELECT userid
 	}
 	defer rows.Close()
 
-	mods := []f.Id{}
+	mods := []f.ID{}
 	for rows.Next() {
-		mod := f.Id{}
-		err = rows.Scan(&mod.Id)
+		mod := f.ID{}
+		err = rows.Scan(&mod.ID)
 		if err != nil {
 			return err
 		}
@@ -214,7 +214,7 @@ SELECT usergroupid
 		perms.OpenOwn = forumpermissions&1024 != 0
 
 		ug := f.Usergroup{}
-		ug.Id = usergroupid
+		ug.ID = usergroupid
 		ug.ForumPermissions = perms
 
 		usergroups = append(usergroups, ug)

@@ -22,11 +22,6 @@ func GetConnection() {
 
 	HandleErr(db.QueryRow("SELECT @@max_connections").Scan(&dbMaxConns))
 
-	spareConns := 10
-	if dbMaxConns > spareConns {
-		dbMaxConns = dbMaxConns - spareConns
-	}
-
 	db.SetMaxOpenConns(dbMaxConns)
 
 	fmt.Printf("MySQL MaxConns: %d\n", dbMaxConns)
@@ -34,7 +29,12 @@ func GetConnection() {
 
 func GetGophers(tasks int) int {
 	if tasks > dbMaxConns {
-		return dbMaxConns
+		switch {
+		case dbMaxConns < 10:
+			return dbMaxConns
+		default:
+			return int(float64(dbMaxConns) * 0.75)
+		}
 	} else {
 		return tasks
 	}
