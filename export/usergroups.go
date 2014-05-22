@@ -127,12 +127,34 @@ SELECT usergroupid
 	perms.OpenOwn = vb.ForumPermissions&1024 != 0
 	ex.ForumPermissions = perms
 
+	// If we are usergroup 1 or 2 then we are the default built-in ones and we
+	// can handle that and get out.
+	switch id {
+	case 1:
+		// Guests in vBulletin
+		ex.IncludeGuests = true
+		err = WriteFile(filename, ex)
+		return err
+	case 2:
+		// Registered users in vBulletin
+		ex.IncludeRegistered = true
+		err = WriteFile(filename, ex)
+		return err
+	case 3, 4:
+		// Awaiting email confirmation, covered by group id == 2
+		return nil
+	case 5, 6, 7:
+		ex.Moderator = true
+	case 8:
+		ex.Banned = true
+	}
+
 	rows, err := db.Query(`
-SELECT userid
-  FROM `+config.DB.TablePrefix+`user
- WHERE usergroupid = ?
-    OR find_in_set(?, membergroupids) <> 0`,
-		id,
+SELECT date
+      ,posts
+      ,strategy
+  FROM `+config.DB.TablePrefix+`userpromotion
+ WHERE joinusergroupid = ?`,
 		id,
 	)
 	if err != nil {
@@ -140,14 +162,30 @@ SELECT userid
 	}
 	defer rows.Close()
 
-	ids := []f.ID{}
+	type Promotion struct {
+		Date     int64
+		Posts    int64
+		Strategy int64
+	}
+	promotions := []Promotion{}
+	hasCriteria := false
 	for rows.Next() {
-		id := f.ID{}
-		err = rows.Scan(&id.ID)
+
+		promotion := Promotion{}
+		err = rows.Scan(
+			&promotion.Date,
+			&promotion.Posts,
+			&promotion.Strategy,
+		)
 		if err != nil {
 			return err
 		}
-		ids = append(ids, id)
+
+		if promotion.Strategy != 16 {
+			hasCriteria = true
+		}
+
+		promotions = append(promotions, promotion)
 	}
 	err = rows.Err()
 	if err != nil {
@@ -155,7 +193,137 @@ SELECT userid
 	}
 	rows.Close()
 
-	ex.Users = ids
+	// date,posts,strategy
+	// 1,3,3
+	// 30,1500,17
+
+	if hasCriteria {
+		// Export criteria
+		var OrGroup int64
+		ex.Criteria = []f.Criterion{}
+
+		// Note that strategy translates to the following:
+		//
+		// 0 = Posts and Reputation and Date
+		// 1 = Posts or Reputation or Date
+		// 2 = (Posts and Reputation) or Date
+		// 3 = Posts and (Reputation or Date)
+		// 4 = (Posts or Reputation) and Date
+		// 5 = Posts or (Reputation and Date)
+		// 6 = Reputation and (Posts or Date)
+		// 7 = Reputation or (Posts and Date)
+		// 16 = Reputation
+		// 17 = Posts
+		// 18 = Join Date
+		//
+		// Based on the strategy we can ignore certain fields, i.e. strategy 17
+		// means we only care about the number of posts
+		//
+		// We are ignoring reputation as a criteria and so the strategies are
+		// equivalent to:
+		//   null
+		//     16
+		//   comments
+		//     17
+		//   date
+		//     18
+		//   comments AND date
+		//     0, 3, 4, 7
+		//   comments OR date
+		//     1, 2, 5, 6
+		const (
+			postsKey string = "comment_count"
+			dateKey  string = "days_since_registering"
+		)
+
+		for _, promotion := range promotions {
+
+			switch promotion.Strategy {
+			case 17:
+				// Just posts
+				ex.Criteria = append(ex.Criteria, f.Criterion{
+					OrGroup:   OrGroup,
+					Key:       postsKey,
+					Predicate: f.PredicateGreaterThanOrEquals,
+					Value:     promotion.Posts,
+				})
+			case 18:
+				// Just days since registering
+				ex.Criteria = append(ex.Criteria, f.Criterion{
+					OrGroup:   OrGroup,
+					Key:       dateKey,
+					Predicate: f.PredicateGreaterThanOrEquals,
+					Value:     promotion.Date,
+				})
+			case 0, 3, 4, 7:
+				// Posts AND days since registering
+				ex.Criteria = append(ex.Criteria, f.Criterion{
+					OrGroup:   OrGroup,
+					Key:       postsKey,
+					Predicate: f.PredicateGreaterThanOrEquals,
+					Value:     promotion.Posts,
+				})
+
+				ex.Criteria = append(ex.Criteria, f.Criterion{
+					OrGroup:   OrGroup,
+					Key:       dateKey,
+					Predicate: f.PredicateGreaterThanOrEquals,
+					Value:     promotion.Date,
+				})
+			case 1, 2, 5, 6:
+				// Posts OR days since registering
+				ex.Criteria = append(ex.Criteria, f.Criterion{
+					OrGroup:   OrGroup,
+					Key:       postsKey,
+					Predicate: f.PredicateGreaterThanOrEquals,
+					Value:     promotion.Posts,
+				})
+
+				OrGroup++
+
+				ex.Criteria = append(ex.Criteria, f.Criterion{
+					OrGroup:   OrGroup,
+					Key:       dateKey,
+					Predicate: f.PredicateGreaterThanOrEquals,
+					Value:     promotion.Date,
+				})
+			}
+
+			OrGroup++
+		}
+
+	} else {
+		// Export users
+		rows, err = db.Query(`
+SELECT userid
+  FROM `+config.DB.TablePrefix+`user
+ WHERE usergroupid = ?
+    OR find_in_set(?, membergroupids) <> 0`,
+			id,
+			id,
+		)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		ids := []f.ID{}
+		for rows.Next() {
+			id := f.ID{}
+			err = rows.Scan(&id.ID)
+			if err != nil {
+				return err
+			}
+			ids = append(ids, id)
+		}
+		err = rows.Err()
+		if err != nil {
+			return err
+		}
+		rows.Close()
+
+		ex.Users = ids
+	}
 
 	err = WriteFile(filename, ex)
 	if err != nil {
