@@ -7,6 +7,7 @@ import (
 
 	"github.com/cheggaaa/pb"
 
+	// mysql driver, needed for the connection
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -15,19 +16,19 @@ var (
 	dbMaxConns int
 )
 
-func GetConnection() {
+func getConnection() {
 	var err error
 	db, err = sql.Open("mysql", config.DB.ConnectionString)
-	HandleErr(err)
+	handleErr(err)
 
-	HandleErr(db.QueryRow("SELECT @@max_connections").Scan(&dbMaxConns))
+	handleErr(db.QueryRow("SELECT @@max_connections").Scan(&dbMaxConns))
 
 	db.SetMaxOpenConns(dbMaxConns)
 
 	fmt.Printf("MySQL MaxConns: %d\n", dbMaxConns)
 }
 
-func GetGophers(tasks int) int {
+func getGophers(tasks int) int {
 	if tasks > dbMaxConns {
 		switch {
 		case dbMaxConns < 10:
@@ -40,7 +41,7 @@ func GetGophers(tasks int) int {
 	}
 }
 
-func RunDBTasks(ids []int64, task func(int64) error) {
+func runDBTasks(ids []int64, task func(int64) error) {
 
 	bar := pb.StartNew(len(ids))
 
@@ -48,7 +49,7 @@ func RunDBTasks(ids []int64, task func(int64) error) {
 	var errs []error
 
 	var wg sync.WaitGroup
-	for i := 0; i < GetGophers(len(ids)); i++ {
+	for i := 0; i < getGophers(len(ids)); i++ {
 		wg.Add(1)
 
 		go func() {
@@ -72,6 +73,6 @@ func RunDBTasks(ids []int64, task func(int64) error) {
 	bar.Finish()
 
 	for _, err := range errs {
-		HandleErr(err)
+		handleErr(err)
 	}
 }

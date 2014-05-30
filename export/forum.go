@@ -10,17 +10,17 @@ import (
 const forumDir = `forums/`
 
 type vbForum struct {
-	ForumId      int64
+	ForumID      int64
 	Title        string
 	Description  string
 	Options      int64
 	DisplayOrder int64
 }
 
-func ExportForums() {
+func exportForums() {
 
-	if !FileExists(config.Export.OutputDirectory + forumDir) {
-		HandleErr(MkDirAll(config.Export.OutputDirectory + forumDir))
+	if !fileExists(config.Export.OutputDirectory + forumDir) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + forumDir))
 	}
 
 	// vBulletin has the notion of forums that are just hyperlinks to somewhere
@@ -30,30 +30,30 @@ SELECT forumid
   FROM ` + config.DB.TablePrefix + `forum
  WHERE link = ''
  ORDER BY forumid ASC`)
-	HandleErr(err)
+	handleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		HandleErr(rows.Scan(&id))
+		handleErr(rows.Scan(&id))
 		ids = append(ids, id)
 	}
-	HandleErr(rows.Err())
+	handleErr(rows.Err())
 	rows.Close()
 
 	fmt.Println("Exporting forums")
-	RunDBTasks(ids, ExportForum)
+	runDBTasks(ids, exportForum)
 }
 
-func ExportForum(id int64) error {
+func exportForum(id int64) error {
 
 	// Split the filename and ensure the directory exists
-	path, name := SplitFilename(strconv.FormatInt(id, 10))
+	path, name := splitFilename(strconv.FormatInt(id, 10))
 	path = config.Export.OutputDirectory + forumDir + path
 
-	if !FileExists(path) {
-		err := MkDirAll(path)
+	if !fileExists(path) {
+		err := mkDirAll(path)
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,7 @@ func ExportForum(id int64) error {
 
 	// Don't export if we've exported already
 
-	if FileExists(filename) {
+	if fileExists(filename) {
 		return nil
 	}
 
@@ -78,7 +78,7 @@ SELECT forumid
  WHERE forumid = ?`,
 		id,
 	).Scan(
-		&vb.ForumId,
+		&vb.ForumID,
 		&vb.Title,
 		&vb.Description,
 		&vb.Options,
@@ -89,7 +89,7 @@ SELECT forumid
 	}
 
 	ex := f.Forum{}
-	ex.ID = vb.ForumId
+	ex.ID = vb.ForumID
 	ex.Name = vb.Title
 	ex.Text = vb.Description
 	ex.DisplayOrder = vb.DisplayOrder
@@ -226,7 +226,7 @@ SELECT usergroupid
 	rows.Close()
 	ex.Usergroups = usergroups
 
-	err = WriteFile(filename, ex)
+	err = writeFile(filename, ex)
 	if err != nil {
 		return err
 	}

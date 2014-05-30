@@ -11,52 +11,52 @@ import (
 const conversationDir = `conversations/`
 
 type vbThread struct {
-	ThreadId    int64
+	ThreadID    int64
 	Title       string
 	Prefix      string
-	ForumId     int64
+	ForumID     int64
 	Open        int64
 	DateCreated int64
 	Views       int64
 	Visible     int64
 	Sticky      int64
-	PollId      int64
+	PollID      int64
 }
 
-func ExportConversations() {
+func exportConversations() {
 
-	if !FileExists(config.Export.OutputDirectory + conversationDir) {
-		HandleErr(MkDirAll(config.Export.OutputDirectory + conversationDir))
+	if !fileExists(config.Export.OutputDirectory + conversationDir) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + conversationDir))
 	}
 
 	rows, err := db.Query(`
 SELECT threadid
   FROM ` + config.DB.TablePrefix + `thread
  ORDER BY threadid ASC`)
-	HandleErr(err)
+	handleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		HandleErr(rows.Scan(&id))
+		handleErr(rows.Scan(&id))
 		ids = append(ids, id)
 	}
-	HandleErr(rows.Err())
+	handleErr(rows.Err())
 	rows.Close()
 
 	fmt.Println("Exporting conversations")
-	RunDBTasks(ids, ExportConversation)
+	runDBTasks(ids, exportConversation)
 }
 
-func ExportConversation(id int64) error {
+func exportConversation(id int64) error {
 
 	// Split the filename and ensure the directory exists
-	path, name := SplitFilename(strconv.FormatInt(id, 10))
+	path, name := splitFilename(strconv.FormatInt(id, 10))
 	path = config.Export.OutputDirectory + conversationDir + path
 
-	if !FileExists(path) {
-		err := MkDirAll(path)
+	if !fileExists(path) {
+		err := mkDirAll(path)
 		if err != nil {
 			return err
 		}
@@ -66,7 +66,7 @@ func ExportConversation(id int64) error {
 
 	// Don't export if we've exported already
 
-	if FileExists(filename) {
+	if fileExists(filename) {
 		return nil
 	}
 
@@ -88,16 +88,16 @@ SELECT t.threadid
  WHERE t.threadid = ?`,
 		id,
 	).Scan(
-		&vb.ThreadId,
+		&vb.ThreadID,
 		&vb.Title,
 		&vb.Prefix,
-		&vb.ForumId,
+		&vb.ForumID,
 		&vb.Open,
 		&vb.DateCreated,
 		&vb.Views,
 		&vb.Visible,
 		&vb.Sticky,
-		&vb.PollId,
+		&vb.PollID,
 	)
 	if err != nil {
 		return err
@@ -105,8 +105,8 @@ SELECT t.threadid
 
 	ex := f.Conversation{}
 
-	ex.ID = vb.ThreadId
-	ex.ForumID = vb.ForumId
+	ex.ID = vb.ThreadID
+	ex.ForumID = vb.ForumID
 
 	if vb.Prefix == "" {
 		ex.Name = vb.Title
@@ -121,7 +121,7 @@ SELECT t.threadid
 	ex.Deleted = (vb.Visible == 2)
 	ex.Sticky = (vb.Sticky == 1)
 
-	err = WriteFile(filename, ex)
+	err = writeFile(filename, ex)
 	if err != nil {
 		return err
 	}

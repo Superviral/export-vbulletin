@@ -39,7 +39,7 @@ var (
 	config tomlConfig
 )
 
-func LoadConfig(configFile string) error {
+func loadConfig(configFile string) error {
 	if _, err := toml.DecodeFile(configFile, &config); err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func LoadConfig(configFile string) error {
 	if err != nil {
 		if os.IsNotExist(err) {
 			// Create it (writable)
-			err = MkDirAll(config.Export.OutputDirectory)
+			err = mkDirAll(config.Export.OutputDirectory)
 			if err != nil {
 				return err
 			}
@@ -84,11 +84,11 @@ func LoadConfig(configFile string) error {
 
 	// Test we can write to it
 	tmpFile := config.Export.OutputDirectory + "tmp"
-	err = WriteFile(tmpFile, "hello")
+	err = writeFile(tmpFile, "hello")
 	if err != nil {
 		return errors.New("Could not create tmp file " + tmpFile + " , no write permissions?\n" + err.Error())
 	}
-	DeleteFile(tmpFile)
+	deleteFile(tmpFile)
 
 	config.DB.ConnectionString = fmt.Sprintf(
 		"%s:%s@tcp(%s)/%s?timeout=30s&strict=true",
@@ -98,7 +98,7 @@ func LoadConfig(configFile string) error {
 		config.DB.Database,
 	)
 
-	GetConnection()
+	getConnection()
 
 	var forumCount int64
 	err = db.QueryRow(`SELECT COUNT(*) FROM ` + config.DB.TablePrefix + `forum`).Scan(&forumCount)

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func FileExists(path string) bool {
+func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -22,7 +22,7 @@ func FileExists(path string) bool {
 //   path = 123/456/789
 //   filename = 0
 // Used to ensure no greater than 1,000 items per directory
-func SplitFilename(input string) (string, string) {
+func splitFilename(input string) (string, string) {
 
 	var (
 		path     string
@@ -31,7 +31,7 @@ func SplitFilename(input string) (string, string) {
 		part     string
 	)
 
-	for i, _ := range input {
+	for i := range input {
 		part += input[i : i+1]
 
 		if i < len(input)-1 && len(part) == 3 {
@@ -47,7 +47,7 @@ func SplitFilename(input string) (string, string) {
 	return path, filename
 }
 
-func WriteFile(path string, data interface{}) error {
+func writeFile(path string, data interface{}) error {
 
 	file, err := os.Create(path)
 	if err != nil {
@@ -64,7 +64,7 @@ func WriteFile(path string, data interface{}) error {
 	return nil
 }
 
-func DeleteFile(path string) error {
+func deleteFile(path string) error {
 
 	err := os.Remove(path)
 	if err != nil {
@@ -74,7 +74,7 @@ func DeleteFile(path string) error {
 	return nil
 }
 
-func MkDirAll(path string) error {
+func mkDirAll(path string) error {
 
 	err := os.MkdirAll(path, 0700)
 	if err != nil {

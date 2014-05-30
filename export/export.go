@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func HandleErr(err error) {
+func handleErr(err error) {
 	if err != nil {
 		if db != nil {
 			db.Close()
@@ -15,26 +15,28 @@ func HandleErr(err error) {
 	}
 }
 
-func HandleErrMsg(err error, msg string) {
+func handleErrMsg(err error, msg string) {
 	if err != nil {
 		fmt.Println(msg)
-		HandleErr(err)
+		handleErr(err)
 	}
 }
 
+// Export runs the export job
 func Export(configFile string) {
-	LoadConfig(configFile)
+	loadConfig(configFile)
 
-	// ExportMessages()
-	// ExportFollows()
-	// ExportAttachments()
+	// exportFollows()
+	// exportAttachments()
+
+	exportMessages()
 
 	// ### DONE ###
-	ExportUsers()
-	ExportUserGroups()
-	ExportForums()
-	ExportConversations()
-	ExportComments()
+	// exportUsers()
+	// exportUserGroups()
+	// exportForums()
+	// exportConversations()
+	// exportComments()
 
 	if db != nil {
 		db.Close()

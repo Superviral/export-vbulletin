@@ -12,53 +12,53 @@ import (
 const userDir = `users/`
 
 type vbUser struct {
-	UserId         int64
-	UserGroupId    int64
-	MemberGroupIds string
+	UserID         int64
+	UserGroupID    int64
+	MemberGroupIDs string
 	Username       string
 	Email          string
 	JoinDate       int64
 	LastVisit      int64
 	LastActivity   int64
-	IpAddress      string
+	IPAddress      string
 	Banned         bool
 	Options        int64
 }
 
-func ExportUsers() {
+func exportUsers() {
 
-	if !FileExists(config.Export.OutputDirectory + userDir) {
-		HandleErr(MkDirAll(config.Export.OutputDirectory + userDir))
+	if !fileExists(config.Export.OutputDirectory + userDir) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + userDir))
 	}
 
 	rows, err := db.Query(`
 SELECT userid
   FROM ` + config.DB.TablePrefix + `user
  ORDER BY userid ASC`)
-	HandleErr(err)
+	handleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		HandleErr(rows.Scan(&id))
+		handleErr(rows.Scan(&id))
 		ids = append(ids, id)
 	}
-	HandleErr(rows.Err())
+	handleErr(rows.Err())
 	rows.Close()
 
 	fmt.Println("Exporting users")
-	RunDBTasks(ids, ExportUser)
+	runDBTasks(ids, exportUser)
 }
 
-func ExportUser(id int64) error {
+func exportUser(id int64) error {
 
 	// Split the filename and ensure the directory exists
-	path, name := SplitFilename(strconv.FormatInt(id, 10))
+	path, name := splitFilename(strconv.FormatInt(id, 10))
 	path = config.Export.OutputDirectory + userDir + path
 
-	if !FileExists(path) {
-		err := MkDirAll(path)
+	if !fileExists(path) {
+		err := mkDirAll(path)
 		if err != nil {
 			return err
 		}
@@ -67,7 +67,7 @@ func ExportUser(id int64) error {
 	filename := fmt.Sprintf("%s/%s.json", path, name)
 
 	// Don't export if we've exported already
-	if FileExists(filename) {
+	if fileExists(filename) {
 		return nil
 	}
 
@@ -90,15 +90,15 @@ SELECT u.userid
  WHERE u.userid = ?`,
 		id,
 	).Scan(
-		&vb.UserId,
-		&vb.UserGroupId,
-		&vb.MemberGroupIds,
+		&vb.UserID,
+		&vb.UserGroupID,
+		&vb.MemberGroupIDs,
 		&vb.Username,
 		&vb.Email,
 		&vb.JoinDate,
 		&vb.LastVisit,
 		&vb.LastActivity,
-		&vb.IpAddress,
+		&vb.IPAddress,
 		&vb.Banned,
 		&vb.Options,
 	)
@@ -109,24 +109,24 @@ SELECT u.userid
 	// Map the user into our structure performing any translations needed
 
 	ex := f.User{}
-	ex.ID = vb.UserId
+	ex.ID = vb.UserID
 	ex.Name = vb.Username
 	ex.Email = vb.Email
 	ex.DateCreated = time.Unix(vb.JoinDate, 0).UTC()
 	ex.LastActive = time.Unix(vb.LastVisit, 0).UTC()
-	ex.IPAddress = vb.IpAddress
+	ex.IPAddress = vb.IPAddress
 	ex.Banned = vb.Banned
 
 	usergroups := []f.ID{}
-	usergroups = append(usergroups, f.ID{ID: vb.UserGroupId})
-	if vb.MemberGroupIds != "" {
-		groups := strings.Split(vb.MemberGroupIds, ",")
+	usergroups = append(usergroups, f.ID{ID: vb.UserGroupID})
+	if vb.MemberGroupIDs != "" {
+		groups := strings.Split(vb.MemberGroupIDs, ",")
 		for _, group := range groups {
-			groupId, err := strconv.ParseInt(strings.Trim(group, " "), 10, 64)
+			groupID, err := strconv.ParseInt(strings.Trim(group, " "), 10, 64)
 			if err != nil {
 				return err
 			}
-			usergroups = append(usergroups, f.ID{ID: groupId})
+			usergroups = append(usergroups, f.ID{ID: groupID})
 		}
 	}
 	ex.Usergroups = usergroups
@@ -161,7 +161,7 @@ SELECT u.userid
 	ex.ReceiveEmailNotifications = vb.Options&4096 != 0
 
 	// Write the user
-	err = WriteFile(filename, ex)
+	err = writeFile(filename, ex)
 	if err != nil {
 		return err
 	}

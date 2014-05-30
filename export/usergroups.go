@@ -10,46 +10,46 @@ import (
 const usergroupDir = `usergroups/`
 
 type vbUserGroup struct {
-	UserGroupId      int64
+	UserGroupID      int64
 	Title            string
 	Description      string
 	ForumPermissions int64
 }
 
-func ExportUserGroups() {
+func exportUserGroups() {
 
-	if !FileExists(config.Export.OutputDirectory + usergroupDir) {
-		HandleErr(MkDirAll(config.Export.OutputDirectory + usergroupDir))
+	if !fileExists(config.Export.OutputDirectory + usergroupDir) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + usergroupDir))
 	}
 
 	rows, err := db.Query(`
 SELECT usergroupid
   FROM ` + config.DB.TablePrefix + `usergroup
  ORDER BY usergroupid ASC`)
-	HandleErr(err)
+	handleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		HandleErr(rows.Scan(&id))
+		handleErr(rows.Scan(&id))
 		ids = append(ids, id)
 	}
-	HandleErr(rows.Err())
+	handleErr(rows.Err())
 	rows.Close()
 
 	fmt.Println("Exporting usergroups")
-	RunDBTasks(ids, ExportUserGroup)
+	runDBTasks(ids, exportUserGroup)
 }
 
-func ExportUserGroup(id int64) error {
+func exportUserGroup(id int64) error {
 
 	// Split the filename and ensure the directory exists
-	path, name := SplitFilename(strconv.FormatInt(id, 10))
+	path, name := splitFilename(strconv.FormatInt(id, 10))
 	path = config.Export.OutputDirectory + usergroupDir + path
 
-	if !FileExists(path) {
-		err := MkDirAll(path)
+	if !fileExists(path) {
+		err := mkDirAll(path)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func ExportUserGroup(id int64) error {
 
 	// Don't export if we've exported already
 
-	if FileExists(filename) {
+	if fileExists(filename) {
 		return nil
 	}
 
@@ -73,7 +73,7 @@ SELECT usergroupid
  WHERE usergroupid = ?`,
 		id,
 	).Scan(
-		&vb.UserGroupId,
+		&vb.UserGroupID,
 		&vb.Title,
 		&vb.Description,
 		&vb.ForumPermissions,
@@ -83,7 +83,7 @@ SELECT usergroupid
 	}
 
 	ex := f.Usergroup{}
-	ex.ID = vb.UserGroupId
+	ex.ID = vb.UserGroupID
 	ex.Name = vb.Title
 	ex.Text = vb.Description
 	ex.Banned = (vb.ForumPermissions == 0)
@@ -133,12 +133,12 @@ SELECT usergroupid
 	case 1:
 		// Guests in vBulletin
 		ex.IncludeGuests = true
-		err = WriteFile(filename, ex)
+		err = writeFile(filename, ex)
 		return err
 	case 2:
 		// Registered users in vBulletin
 		ex.IncludeRegistered = true
-		err = WriteFile(filename, ex)
+		err = writeFile(filename, ex)
 		return err
 	case 3, 4:
 		// Awaiting email confirmation, covered by group id == 2
@@ -325,7 +325,7 @@ SELECT userid
 		ex.Users = ids
 	}
 
-	err = WriteFile(filename, ex)
+	err = writeFile(filename, ex)
 	if err != nil {
 		return err
 	}

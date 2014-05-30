@@ -11,51 +11,51 @@ import (
 const commentDir = `comments/`
 
 type vbPost struct {
-	PostId      int64
-	ThreadId    int64
-	ParentId    int64
-	UserId      int64
+	PostID      int64
+	ThreadID    int64
+	ParentID    int64
+	UserID      int64
 	Title       string
 	DateCreated int64
 	PageText    string
-	IpAddress   string
+	IPAddress   string
 	Visible     int64
 }
 
-func ExportComments() {
+func exportComments() {
 
-	if !FileExists(config.Export.OutputDirectory + commentDir) {
-		HandleErr(MkDirAll(config.Export.OutputDirectory + commentDir))
+	if !fileExists(config.Export.OutputDirectory + commentDir) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + commentDir))
 	}
 
 	rows, err := db.Query(`
 SELECT postid
   FROM ` + config.DB.TablePrefix + `post
  ORDER BY postid ASC`)
-	HandleErr(err)
+	handleErr(err)
 	defer rows.Close()
 
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
-		HandleErr(rows.Scan(&id))
+		handleErr(rows.Scan(&id))
 		ids = append(ids, id)
 	}
-	HandleErr(rows.Err())
+	handleErr(rows.Err())
 	rows.Close()
 
 	fmt.Println("Exporting comments")
-	RunDBTasks(ids, ExportComment)
+	runDBTasks(ids, exportComment)
 }
 
-func ExportComment(id int64) error {
+func exportComment(id int64) error {
 
 	// Split the filename and ensure the directory exists
-	path, name := SplitFilename(strconv.FormatInt(id, 10))
+	path, name := splitFilename(strconv.FormatInt(id, 10))
 	path = config.Export.OutputDirectory + commentDir + path
 
-	if !FileExists(path) {
-		err := MkDirAll(path)
+	if !fileExists(path) {
+		err := mkDirAll(path)
 		if err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func ExportComment(id int64) error {
 
 	// Don't export if we've exported already
 
-	if FileExists(filename) {
+	if fileExists(filename) {
 		return nil
 	}
 
@@ -84,14 +84,14 @@ SELECT postid
  WHERE postid = ?`,
 		id,
 	).Scan(
-		&vb.PostId,
-		&vb.ThreadId,
-		&vb.ParentId,
-		&vb.UserId,
+		&vb.PostID,
+		&vb.ThreadID,
+		&vb.ParentID,
+		&vb.UserID,
 		&vb.Title,
 		&vb.DateCreated,
 		&vb.PageText,
-		&vb.IpAddress,
+		&vb.IPAddress,
 		&vb.Visible,
 	)
 	if err != nil {
@@ -99,12 +99,12 @@ SELECT postid
 	}
 
 	ex := f.Comment{}
-	ex.ID = vb.PostId
+	ex.ID = vb.PostID
 	ex.OnType = "conversation"
-	ex.OnID = vb.ThreadId
-	ex.InReplyTo = vb.ParentId
-	ex.Author = vb.UserId
-	ex.IPAddress = vb.IpAddress
+	ex.OnID = vb.ThreadID
+	ex.InReplyTo = vb.ParentID
+	ex.Author = vb.UserID
+	ex.IPAddress = vb.IPAddress
 	ex.DateCreated = time.Unix(vb.DateCreated, 0).UTC()
 	ex.Moderated = (vb.Visible == 0)
 	ex.Deleted = (vb.Visible == 2)
@@ -113,11 +113,11 @@ SELECT postid
 	version.DateModified = time.Unix(vb.DateCreated, 0).UTC()
 	version.Headline = vb.Title
 	version.Text = vb.PageText
-	version.IPAddress = vb.IpAddress
-	version.Editor = vb.UserId
+	version.IPAddress = vb.IPAddress
+	version.Editor = vb.UserID
 	ex.Versions = append(ex.Versions, version)
 
-	err = WriteFile(filename, ex)
+	err = writeFile(filename, ex)
 	if err != nil {
 		return err
 	}
