@@ -26,7 +26,6 @@ func handleErrMsg(err error, msg string) {
 func Export(configFile string) {
 	handleErr(loadConfig(configFile))
 
-	// exportFollows()
 	// exportAttachments()
 
 	// ### DONE ###
@@ -35,6 +34,7 @@ func Export(configFile string) {
 	exportForums()
 	exportConversations()
 	exportComments()
+	exportFollows()
 	exportMessages()
 
 	if db != nil {

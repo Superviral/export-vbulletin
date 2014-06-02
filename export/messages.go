@@ -120,11 +120,14 @@ SELECT userid
 	rs := []vbPMRecipient{}
 	for rows.Next() {
 		r := vbPMRecipient{}
-		rows.Scan(
+		err = rows.Scan(
 			&r.UserID,
 			&r.FolderID,
 			&r.MessageRead,
 		)
+		if err != nil {
+			return err
+		}
 
 		rs = append(rs, r)
 	}
