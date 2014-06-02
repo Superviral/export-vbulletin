@@ -24,7 +24,7 @@ func handleErrMsg(err error, msg string) {
 
 // Export runs the export job
 func Export(configFile string) {
-	loadConfig(configFile)
+	handleErr(loadConfig(configFile))
 
 	// exportFollows()
 	// exportAttachments()

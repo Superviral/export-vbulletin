@@ -52,11 +52,13 @@ func loadConfig(configFile string) error {
 	if config.DB.Username == "" ||
 		config.DB.Password == "" ||
 		config.DB.Database == "" {
-		return errors.New("MySQL connection information incomplete/missing in config " + configFile)
+		return errors.New("MySQL connection info incomplete/missing " +
+			"in config " + configFile)
 	}
 
-	if (config.DB.Server == "" || config.DB.Port == 0) || config.DB.Sock == "" {
-		return errors.New("MySQL connection information incomplete/missing in config " + configFile)
+	if (config.DB.Server == "" || config.DB.Port == 0) && config.DB.Sock == "" {
+		return errors.New("MySQL connection info incomplete/missing " +
+			"in config " + configFile)
 	}
 
 	if config.Export.OutputDirectory == "" {
@@ -81,7 +83,9 @@ func loadConfig(configFile string) error {
 		}
 	} else {
 		if !fileInf.IsDir() {
-			return errors.New("Output directory exists, and is a file not a directory: " + config.Export.OutputDirectory)
+			return errors.New("Output directory exists, " +
+				"and is a file not a directory: " +
+				config.Export.OutputDirectory)
 		}
 	}
 
@@ -89,7 +93,8 @@ func loadConfig(configFile string) error {
 	tmpFile := config.Export.OutputDirectory + "tmp"
 	err = writeFile(tmpFile, "hello")
 	if err != nil {
-		return errors.New("Could not create tmp file " + tmpFile + " , no write permissions?\n" + err.Error())
+		return errors.New("Could not create tmp file " + tmpFile +
+			" , no write permissions?\n" + err.Error())
 	}
 	deleteFile(tmpFile)
 
@@ -115,13 +120,18 @@ func loadConfig(configFile string) error {
 	getConnection()
 
 	var forumCount int64
-	err = db.QueryRow(`SELECT COUNT(*) FROM ` + config.DB.TablePrefix + `forum`).Scan(&forumCount)
+	err = db.QueryRow(
+		`SELECT COUNT(*) FROM ` + config.DB.TablePrefix + `forum`,
+	).Scan(
+		&forumCount,
+	)
 	if err != nil {
 		return err
 	}
 
 	if forumCount == 0 {
-		return errors.New("vBulletin schema detected, but there are no forums in the database")
+		return errors.New("vBulletin schema detected, " +
+			"but there are no forums in the database")
 	}
 
 	return nil
