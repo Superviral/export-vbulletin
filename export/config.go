@@ -23,6 +23,7 @@ type forum struct {
 
 type database struct {
 	ConnectionString string `toml:"-"`
+	Sock             string
 	Server           string
 	Port             int64
 	Database         string
@@ -48,11 +49,13 @@ func loadConfig(configFile string) error {
 		return errors.New("Forum version missing from config " + configFile)
 	}
 
-	if config.DB.Server == "" ||
-		config.DB.Port == 0 ||
-		config.DB.Username == "" ||
+	if config.DB.Username == "" ||
 		config.DB.Password == "" ||
 		config.DB.Database == "" {
+		return errors.New("MySQL connection information incomplete/missing in config " + configFile)
+	}
+
+	if (config.DB.Server == "" || config.DB.Port == 0) || config.DB.Sock == "" {
 		return errors.New("MySQL connection information incomplete/missing in config " + configFile)
 	}
 
@@ -90,13 +93,24 @@ func loadConfig(configFile string) error {
 	}
 	deleteFile(tmpFile)
 
-	config.DB.ConnectionString = fmt.Sprintf(
-		"%s:%s@tcp(%s)/%s?timeout=30s&strict=true",
-		config.DB.Username,
-		config.DB.Password,
-		fmt.Sprintf("%s:%d", config.DB.Server, config.DB.Port),
-		config.DB.Database,
-	)
+	if config.DB.Sock != "" {
+		config.DB.ConnectionString = fmt.Sprintf(
+			"%s:%s@unix(%s)/%s?timeout=30s&strict=true",
+			config.DB.Username,
+			config.DB.Password,
+			config.DB.Sock,
+			config.DB.Database,
+		)
+	} else {
+		// TCP connections
+		config.DB.ConnectionString = fmt.Sprintf(
+			"%s:%s@tcp(%s)/%s?timeout=30s&strict=true",
+			config.DB.Username,
+			config.DB.Password,
+			fmt.Sprintf("%s:%d", config.DB.Server, config.DB.Port),
+			config.DB.Database,
+		)
+	}
 
 	getConnection()
 

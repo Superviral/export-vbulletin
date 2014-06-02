@@ -7,6 +7,7 @@ MajorVersion = 3
 MinorVersion = 8
 
 [database]
+Sock         = "/var/run/mysqld/mysqld.sock"
 Server       = "127.0.0.1"
 Port         = 3306
 Database     = "lfgss"
