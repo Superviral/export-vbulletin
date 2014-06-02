@@ -18,7 +18,7 @@ type vbPM struct {
 	DateCreated int64
 }
 
-type vbPMReceipient struct {
+type vbPMRecipient struct {
 	UserID      int64
 	FolderID    int64
 	MessageRead int64
@@ -66,7 +66,6 @@ func exportMessage(id int64) error {
 	filename := fmt.Sprintf("%s/%s.json", path, name)
 
 	// Don't export if we've exported already
-
 	if fileExists(filename) {
 		return nil
 	}
@@ -92,47 +91,59 @@ SELECT pmtextid
 		return err
 	}
 
-	// -- every PM that hasn't been deleted creates a row in vb_pm
-	// SELECT userid
-	//       ,folderid
-	//       ,messageread
-	//   FROM vb_pm
-	//  WHERE pmtextid = 1458652;
-
-	// -- folderid = -1 = sent
-	// -- folderid >= 0 = received
-	// -- messageread = 0 = unread
-	// -- messageread = 0 = read
-
-	c := f.CommentVersion{}
-	c.DateModified = time.Unix(vb.DateCreated, 0).UTC()
-	c.Editor = vb.FromUserID
-	c.Headline = vb.Title
-	c.Text = vb.Message
-
 	ex := f.Message{}
-
 	ex.ID = vb.PMTextID
 	ex.Author = vb.FromUserID
 	ex.DateCreated = time.Unix(vb.DateCreated, 0).UTC()
-	ex.Versions = append(ex.Versions, c)
 
-	// ex.OnType = "conversation"
-	// ex.OnID = vb.ThreadID
-	// ex.InReplyTo = vb.ParentID
-	// ex.Author = vb.UserID
-	// ex.IPAddress = vb.IPAddress
-	// ex.DateCreated = time.Unix(vb.DateCreated, 0).UTC()
-	// ex.Moderated = (vb.Visible == 0)
-	// ex.Deleted = (vb.Visible == 2)
+	ex.Versions = append(ex.Versions, f.CommentVersion{
+		DateModified: time.Unix(vb.DateCreated, 0).UTC(),
+		Editor:       vb.FromUserID,
+		Headline:     vb.Title,
+		Text:         vb.Message,
+	})
 
-	// 	version := f.CommentVersion{}
-	// 	version.DateModified = time.Unix(vb.DateCreated, 0).UTC()
-	// 	version.Headline = vb.Title
-	// 	version.Text = vb.PageText
-	// 	version.IPAddress = vb.IPAddress
-	// 	version.Editor = vb.UserID
-	// 	ex.Versions = append(ex.Versions, version)
+	// -- every PM that hasn't been deleted creates a row in vb_pm
+	rows, err := db.Query(`
+SELECT userid
+      ,folderid
+      ,messageread
+  FROM vb_pm
+ WHERE pmtextid = ?`,
+		id,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	rs := []vbPMRecipient{}
+	for rows.Next() {
+		r := vbPMRecipient{}
+		rows.Scan(
+			&r.UserID,
+			&r.FolderID,
+			&r.MessageRead,
+		)
+
+		rs = append(rs, r)
+	}
+	err = rows.Err()
+	if err != nil {
+		return err
+	}
+	rows.Close()
+
+	for _, r := range rs {
+		recipient := f.MessageRecipient{}
+		recipient.ID = r.UserID
+
+		// -- messageread = 0 = unread
+		// -- messageread = 1 = read
+		recipient.Read = (r.MessageRead > 0)
+
+		ex.To = append(ex.To, recipient)
+	}
 
 	err = writeFile(filename, ex)
 	if err != nil {

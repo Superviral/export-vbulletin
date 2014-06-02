@@ -29,14 +29,13 @@ func Export(configFile string) {
 	// exportFollows()
 	// exportAttachments()
 
-	exportMessages()
-
 	// ### DONE ###
-	// exportUsers()
-	// exportUserGroups()
-	// exportForums()
-	// exportConversations()
-	// exportComments()
+	exportUsers()
+	exportUserGroups()
+	exportForums()
+	exportConversations()
+	exportComments()
+	exportMessages()
 
 	if db != nil {
 		db.Close()
