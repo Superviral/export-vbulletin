@@ -29,6 +29,11 @@ func getConnection() {
 }
 
 func getGophers(tasks int) int {
+
+	if config.DB.Connections > 0 {
+		return config.DB.Connections
+	}
+
 	if tasks > dbMaxConns {
 		switch {
 		case dbMaxConns < 10:

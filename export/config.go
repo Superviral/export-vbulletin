@@ -22,6 +22,7 @@ type forum struct {
 }
 
 type database struct {
+	Connections      int
 	ConnectionString string `toml:"-"`
 	Sock             string
 	Server           string
