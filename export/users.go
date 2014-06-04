@@ -1,6 +1,8 @@
 package export
 
 import (
+	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"strconv"
 	"strings"
@@ -23,6 +25,16 @@ type vbUser struct {
 	IPAddress      string
 	Banned         bool
 	Options        int64
+}
+
+type vbAvatar struct {
+	DateCreated int64
+	FileName    string
+	FileSize    int64
+	FileData    []byte
+	Width       int64
+	Height      int64
+	Visible     int
 }
 
 func exportUsers() {
@@ -159,6 +171,54 @@ SELECT u.userid
 	// </group>
 	ex.ReceiveEmailFromAdmins = vb.Options&16 != 0
 	ex.ReceiveEmailNotifications = vb.Options&4096 != 0
+
+	// Fetch the avatar
+	vba := vbAvatar{}
+	err = db.QueryRow(`
+SELECT dateline
+      ,filename
+      ,filesize
+      ,filedata
+      ,width
+      ,height
+      ,visible
+  FROM `+config.DB.TablePrefix+`customavatar
+ WHERE userid = ?`,
+		id,
+	).Scan(
+		&vba.DateCreated,
+		&vba.FileName,
+		&vba.FileSize,
+		&vba.FileData,
+		&vba.Width,
+		&vba.Height,
+		&vba.Visible,
+	)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return err
+		}
+		// No custom avatar
+	} else {
+		// We have a custom avatar
+		exa := f.Attachment{}
+
+		exa.Author = id
+		exa.DateCreated = time.Unix(vba.DateCreated, 0).UTC()
+		exa.Associations = append(exa.Associations, f.Association{
+			OnType: "user",
+			OnID:   id,
+		})
+		exa.Name = vba.FileName
+		exa.ContentSize = vba.FileSize
+		exa.MimeType = getMimeTypeFromFileName(vba.FileName)
+		exa.ContentURL = "data:" + exa.MimeType + ";base64," +
+			base64.StdEncoding.EncodeToString(vba.FileData)
+		exa.Width = vba.Width
+		exa.Height = vba.Height
+
+		ex.Avatar = exa
+	}
 
 	// Write the user
 	err = writeFile(filename, ex)

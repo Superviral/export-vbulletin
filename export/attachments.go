@@ -3,8 +3,9 @@ package export
 import (
 	"encoding/base64"
 	"fmt"
+	"mime"
+	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	f "github.com/microcosm-cc/export-schemas/go/forum"
@@ -116,7 +117,7 @@ SELECT a.attachmentid
 	})
 	ex.Name = vb.FileName
 	ex.ContentSize = vb.FileSize
-	ex.MimeType = parseMimeType(vb.MimeType)
+	ex.MimeType = getMimeTypeFromFileName("name." + vb.Extension)
 	ex.ContentURL = "data:" + ex.MimeType + ";base64," +
 		base64.StdEncoding.EncodeToString(vb.FileData)
 
@@ -128,10 +129,16 @@ SELECT a.attachmentid
 	return nil
 }
 
-func parseMimeType(m string) string {
-	m = strings.Split(strings.TrimSuffix(m, `";}`), `"`)[1]
-	if strings.HasPrefix(m, `Content-type: `) {
-		m = strings.TrimPrefix(m, `Content-type: `)
+func getMimeTypeFromFileName(m string) string {
+	ext := filepath.Ext(m)
+	if ext == "" {
+		return "unknown/unknown"
 	}
-	return m
+
+	mimetype := mime.TypeByExtension(ext)
+	if mimetype == "" {
+		return "unknown/unknown"
+	}
+
+	return mimetype
 }
