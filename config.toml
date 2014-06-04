@@ -7,10 +7,21 @@ MajorVersion = 3
 MinorVersion = 8
 
 [database]
-Sock         = "/var/run/mysqld/mysqld.sock"
+#Sock         = "/var/run/mysqld/mysqld.sock"
 Server       = "127.0.0.1"
 Port         = 3306
 Database     = "lfgss"
 Username     = "root"
 Password     = "root"
 TablePrefix  = "vb_"
+
+# Connections determines the number of parallel processes that we will use to
+# query the data. This correlates loosely to connections made but may not be
+# precisely the number of connections made to the database as your MySQL config
+# may leave connections open, etc.
+#
+# If in doubt, keep this number very low (DEFAULT = 2). If you've raised this
+# number and the export is failing, it can be failing due to lots of reasons
+# (file descriptors, available network resources, MySQL config, etc). Easiest
+# solution is to reduce this number.
+Connections  = 2

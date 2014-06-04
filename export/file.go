@@ -60,6 +60,7 @@ func writeFile(path string, data interface{}) error {
 	if err != nil {
 		return errors.New("Cannot encode data")
 	}
+	file.Close()
 
 	return nil
 }

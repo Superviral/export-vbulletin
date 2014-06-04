@@ -26,6 +26,7 @@ func getConnection() {
 	db.SetMaxOpenConns(dbMaxConns)
 
 	fmt.Printf("MySQL MaxConns: %d\n", dbMaxConns)
+	fmt.Printf("Gophers: %d\n", getGophers(9999))
 }
 
 func getGophers(tasks int) int {
