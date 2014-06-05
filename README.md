@@ -53,3 +53,14 @@ Not all data is exported as certain pieces of information are only relevant to t
 *Forum Hierarchies*: Not exported as different software treats containers differently, some consider forums as a flat list, and some consider forums as labels or categories on content.
 
 *Private Message BCC*: Exported as a standard To recipient as not all systems have the concept of a BCC.
+
+Troubleshooting
+---------------
+
+Things that can go wrong:
+
+1. *Not enough disk space to perform the export*. Please ensure you have more than double what you think will need before starting. i.e. for an exported database that takes 20GB you should have more than 40GB in free disk space when you start the export. However that is a minimum requirement and we'd recommend you don't cut it so close.
+2. *Export fails with an error message*. In every case we came across this is due to not having enough resources to run as many processes as we'd like against the database. This either results in exhausting the database connections, exhausting file system descriptors, etc. In the `config.toml` file you can reduce the `Connections` parameter. A value of `1` will process all data sequentially, a value of `2` will create two child processes and run in parallel. If you have trouble a value below 4 is recommended, if you're on a well-spec'd server a value of 50 is possible.
+
+Exports are resumable. If you encounter any issues, simply resolve the issue and re-run the export job. The export job will skip all items previously exported successfully.
+
