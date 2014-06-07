@@ -27,8 +27,8 @@ func Export(configFile string) {
 	handleErr(loadConfig(configFile))
 
 	// ### DONE ###
-	exportUsers()
-	exportUserGroups()
+	exportProfiles()
+	exportRoles()
 	exportForums()
 	exportConversations()
 	exportComments()

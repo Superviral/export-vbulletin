@@ -7,8 +7,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const usergroupDir = `usergroups/`
-
 type vbUserGroup struct {
 	UserGroupID      int64
 	Title            string
@@ -16,10 +14,10 @@ type vbUserGroup struct {
 	ForumPermissions int64
 }
 
-func exportUserGroups() {
+func exportRoles() {
 
-	if !fileExists(config.Export.OutputDirectory + usergroupDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + usergroupDir))
+	if !fileExists(config.Export.OutputDirectory + f.RolesPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.RolesPath))
 	}
 
 	rows, err := db.Query(`
@@ -39,14 +37,14 @@ SELECT usergroupid
 	rows.Close()
 
 	fmt.Println("Exporting usergroups")
-	runDBTasks(ids, exportUserGroup)
+	runDBTasks(ids, exportRole)
 }
 
-func exportUserGroup(id int64) error {
+func exportRole(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + usergroupDir + path
+	path = config.Export.OutputDirectory + f.RolesPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)
@@ -82,7 +80,7 @@ SELECT usergroupid
 		return err
 	}
 
-	ex := f.Usergroup{}
+	ex := f.Role{}
 	ex.ID = vb.UserGroupID
 	ex.Name = vb.Title
 	ex.Text = vb.Description

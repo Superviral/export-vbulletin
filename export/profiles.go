@@ -37,7 +37,7 @@ type vbAvatar struct {
 	Visible     int
 }
 
-func exportUsers() {
+func exportProfiles() {
 
 	if !fileExists(config.Export.OutputDirectory + userDir) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + userDir))
@@ -59,11 +59,11 @@ SELECT userid
 	handleErr(rows.Err())
 	rows.Close()
 
-	fmt.Println("Exporting users")
-	runDBTasks(ids, exportUser)
+	fmt.Println("Exporting profiles")
+	runDBTasks(ids, exportProfile)
 }
 
-func exportUser(id int64) error {
+func exportProfile(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
@@ -120,7 +120,7 @@ SELECT u.userid
 
 	// Map the user into our structure performing any translations needed
 
-	ex := f.User{}
+	ex := f.Profile{}
 	ex.ID = vb.UserID
 	ex.Name = vb.Username
 	ex.Email = vb.Email

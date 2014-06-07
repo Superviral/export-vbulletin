@@ -8,8 +8,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const commentDir = `comments/`
-
 type vbPost struct {
 	PostID      int64
 	ThreadID    int64
@@ -24,8 +22,8 @@ type vbPost struct {
 
 func exportComments() {
 
-	if !fileExists(config.Export.OutputDirectory + commentDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + commentDir))
+	if !fileExists(config.Export.OutputDirectory + f.CommentsPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.CommentsPath))
 	}
 
 	rows, err := db.Query(`
@@ -52,7 +50,7 @@ func exportComment(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + commentDir + path
+	path = config.Export.OutputDirectory + f.CommentsPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)

@@ -7,8 +7,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const forumDir = `forums/`
-
 type vbForum struct {
 	ForumID      int64
 	Title        string
@@ -19,8 +17,8 @@ type vbForum struct {
 
 func exportForums() {
 
-	if !fileExists(config.Export.OutputDirectory + forumDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + forumDir))
+	if !fileExists(config.Export.OutputDirectory + f.ForumsPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.ForumsPath))
 	}
 
 	// vBulletin has the notion of forums that are just hyperlinks to somewhere
@@ -50,7 +48,7 @@ func exportForum(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + forumDir + path
+	path = config.Export.OutputDirectory + f.ForumsPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)
@@ -161,7 +159,7 @@ SELECT usergroupid
 	}
 	defer rows.Close()
 
-	usergroups := []f.Usergroup{}
+	usergroups := []f.Role{}
 	for rows.Next() {
 		var (
 			usergroupid      int64
@@ -213,7 +211,7 @@ SELECT usergroupid
 		perms.CloseOwn = forumpermissions&1024 != 0
 		perms.OpenOwn = forumpermissions&1024 != 0
 
-		ug := f.Usergroup{}
+		ug := f.Role{}
 		ug.ID = usergroupid
 		ug.ForumPermissions = perms
 

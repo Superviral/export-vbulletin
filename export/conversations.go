@@ -8,8 +8,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const conversationDir = `conversations/`
-
 type vbThread struct {
 	ThreadID    int64
 	AuthorID    int64
@@ -26,8 +24,8 @@ type vbThread struct {
 
 func exportConversations() {
 
-	if !fileExists(config.Export.OutputDirectory + conversationDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + conversationDir))
+	if !fileExists(config.Export.OutputDirectory + f.ConversationsPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.ConversationsPath))
 	}
 
 	rows, err := db.Query(`
@@ -54,7 +52,7 @@ func exportConversation(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + conversationDir + path
+	path = config.Export.OutputDirectory + f.ConversationsPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)

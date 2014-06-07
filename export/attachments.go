@@ -11,8 +11,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const attachmentDir = `attachments/`
-
 type vbAttachment struct {
 	AttachmentID int64
 	DateCreated  int64
@@ -29,8 +27,8 @@ type vbAttachment struct {
 
 func exportAttachments() {
 
-	if !fileExists(config.Export.OutputDirectory + attachmentDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + attachmentDir))
+	if !fileExists(config.Export.OutputDirectory + f.AttachmentsPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.AttachmentsPath))
 	}
 
 	rows, err := db.Query(`
@@ -57,7 +55,7 @@ func exportAttachment(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + attachmentDir + path
+	path = config.Export.OutputDirectory + f.AttachmentsPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)

@@ -8,8 +8,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const messageDir = `messages/`
-
 type vbPM struct {
 	PMTextID    int64
 	FromUserID  int64
@@ -26,8 +24,8 @@ type vbPMRecipient struct {
 
 func exportMessages() {
 
-	if !fileExists(config.Export.OutputDirectory + messageDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + messageDir))
+	if !fileExists(config.Export.OutputDirectory + f.MessagesPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.MessagesPath))
 	}
 
 	rows, err := db.Query(`
@@ -54,7 +52,7 @@ func exportMessage(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + messageDir + path
+	path = config.Export.OutputDirectory + f.MessagesPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)

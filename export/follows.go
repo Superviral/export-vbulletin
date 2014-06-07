@@ -7,12 +7,10 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const followDir = `follows/`
-
 func exportFollows() {
 
-	if !fileExists(config.Export.OutputDirectory + followDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + followDir))
+	if !fileExists(config.Export.OutputDirectory + f.FollowsPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.FollowsPath))
 	}
 
 	rows, err := db.Query(`
@@ -39,7 +37,7 @@ func exportFollow(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + followDir + path
+	path = config.Export.OutputDirectory + f.FollowsPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)
