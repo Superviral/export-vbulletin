@@ -23,7 +23,7 @@ With that in mind, we expect that you have:
 
 When the export task runs it will go as fast as your system allows and you should not be running this on a production system.
 
-**IF you run this on your production system, it will bring your site down.**
+**If you run this on your production system, it will bring your site down.**
 
 Once these steps have been completed and you have a local MySQL instance running just the vBulletin database (and that includes attachments and custom avatars), then you are ready to begin your export.
 
@@ -39,7 +39,7 @@ Running the export
 
 Then wait. it can take a *long* time depending on the size of your forum and the time depends on the capabilities of the local system, especially the disk speed and amount of RAM.
 
-As a guide, a forum with 40k users, 2m posts, 70k attachments took under an hour to export on a server spec workstation, and just over 3 hours to export on a few year old laptop.
+As a guide, a forum with 40k users, 4.5m posts, 1.5m private messages and 70k attachments took under an hour to export on a server spec workstation (with fast disks), and just over 3 hours to export on a few year old laptop (with SSD).
 
 During the export, progress of each task will be printed to the console window.
 
@@ -60,7 +60,7 @@ Troubleshooting
 Things that can go wrong:
 
 1. *Not enough disk space to perform the export*. Please ensure you have more than double what you think will need before starting. i.e. for an exported database that takes 20GB you should have more than 40GB in free disk space when you start the export. However that is a minimum requirement and we'd recommend you don't cut it so close.
-2. *Export fails with an error message*. In every case we came across this is due to not having enough resources to run as many processes as we'd like against the database. This either results in exhausting the database connections, exhausting file system descriptors, etc. In the `config.toml` file you can reduce the `Connections` parameter. A value of `1` will process all data sequentially, a value of `2` will create two child processes and run in parallel. If you have trouble a value below 4 is recommended, if you're on a well-spec'd server a value of 50 is possible.
+2. *Export fails with an error message*. In every case we came across this is due to not having enough resources to run as many processes as we'd like against the database. This either results in exhausting the database connections, exhausting file system descriptors, or some other similar issue. In the `config.toml` file you can reduce the `Connections` parameter. A value of `1` will process all data sequentially, a value of `2` will create two child processes and run in parallel. If you have trouble a value below 4 is recommended, if you're on a well-spec'd server a value of 50 is possible.
 
 Exports are resumable. If you encounter any issues, simply resolve the issue and re-run the export job. The export job will skip all items previously exported successfully.
 

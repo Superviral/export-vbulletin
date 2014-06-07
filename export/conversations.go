@@ -12,6 +12,7 @@ const conversationDir = `conversations/`
 
 type vbThread struct {
 	ThreadID    int64
+	AuthorID    int64
 	Title       string
 	Prefix      string
 	ForumID     int64
@@ -65,7 +66,6 @@ func exportConversation(id int64) error {
 	filename := fmt.Sprintf("%s/%s.json", path, name)
 
 	// Don't export if we've exported already
-
 	if fileExists(filename) {
 		return nil
 	}
@@ -82,6 +82,7 @@ SELECT t.threadid
       ,t.visible
       ,t.sticky
       ,t.pollid
+      ,t.postuserid
   FROM `+config.DB.TablePrefix+`thread t
        LEFT JOIN `+config.DB.TablePrefix+`phrase p ON
             p.varname = CONCAT('prefix_', t.prefixid, '_title_plain')
@@ -98,6 +99,7 @@ SELECT t.threadid
 		&vb.Visible,
 		&vb.Sticky,
 		&vb.PollID,
+		&vb.AuthorID,
 	)
 	if err != nil {
 		return err
@@ -106,6 +108,7 @@ SELECT t.threadid
 	ex := f.Conversation{}
 
 	ex.ID = vb.ThreadID
+	ex.Author = vb.AuthorID
 	ex.ForumID = vb.ForumID
 
 	if vb.Prefix == "" {
