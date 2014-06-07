@@ -92,6 +92,21 @@ SELECT forumid
 	ex.Text = vb.Description
 	ex.DisplayOrder = vb.DisplayOrder
 
+	// vBulletin forums are all created by the admin
+	var adminId int64
+	err = db.QueryRow(`
+SELECT MIN(userid)
+  FROM ` + config.DB.TablePrefix + `user
+ WHERE usergroupid = 6`,
+	).Scan(
+		&adminId,
+	)
+	if err != nil {
+		return err
+	}
+
+	ex.Author = adminId
+
 	// From vBulletin includes/xml/bitfield_vbulletin.xml
 	// <group name="forumoptions">
 	// 	<bitfield name="active">1</bitfield>

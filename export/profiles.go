@@ -11,8 +11,6 @@ import (
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
-const userDir = `users/`
-
 type vbUser struct {
 	UserID         int64
 	UserGroupID    int64
@@ -39,8 +37,8 @@ type vbAvatar struct {
 
 func exportProfiles() {
 
-	if !fileExists(config.Export.OutputDirectory + userDir) {
-		handleErr(mkDirAll(config.Export.OutputDirectory + userDir))
+	if !fileExists(config.Export.OutputDirectory + f.ProfilesPath) {
+		handleErr(mkDirAll(config.Export.OutputDirectory + f.ProfilesPath))
 	}
 
 	rows, err := db.Query(`
@@ -67,7 +65,7 @@ func exportProfile(id int64) error {
 
 	// Split the filename and ensure the directory exists
 	path, name := splitFilename(strconv.FormatInt(id, 10))
-	path = config.Export.OutputDirectory + userDir + path
+	path = config.Export.OutputDirectory + f.ProfilesPath + path
 
 	if !fileExists(path) {
 		err := mkDirAll(path)
