@@ -37,6 +37,9 @@ type vbAvatar struct {
 
 func exportProfiles() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.ProfilesPath
+
 	if !fileExists(config.Export.OutputDirectory + f.ProfilesPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.ProfilesPath))
 	}
@@ -59,6 +62,8 @@ SELECT userid
 
 	fmt.Println("Exporting profiles")
 	runDBTasks(ids, exportProfile)
+
+	writeFile(f.ProfilesPath+"index.json", exportedItems)
 }
 
 func exportProfile(id int64) error {
@@ -223,6 +228,12 @@ SELECT dateline
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:    ex.ID,
+		Path:  filename,
+		Email: ex.Email,
+	})
 
 	return nil
 }

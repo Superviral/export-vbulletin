@@ -5,6 +5,8 @@ import (
 	"errors"
 	"os"
 	"strings"
+
+	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
 
 func fileExists(path string) bool {
@@ -17,6 +19,8 @@ func fileExists(path string) bool {
 
 	return true
 }
+
+var exportedItems f.DirIndex
 
 // Splits a filename such as 1234567890 into two parts
 //   path = 123/456/789
