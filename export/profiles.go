@@ -63,7 +63,7 @@ SELECT userid
 	fmt.Println("Exporting profiles")
 	runDBTasks(ids, exportProfile)
 
-	writeFile(f.ProfilesPath+"index.json", exportedItems)
+	handleErr(writeFile(f.ProfilesPath+"index.json", exportedItems))
 }
 
 func exportProfile(id int64) error {
