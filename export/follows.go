@@ -3,6 +3,7 @@ package export
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
@@ -268,7 +269,7 @@ SELECT threadid
 	}
 
 	exportedItems.Files = append(exportedItems.Files, f.DirFile{
-		ID:   ex.ID,
+		ID:   id,
 		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
 	})
 

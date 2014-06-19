@@ -3,6 +3,7 @@ package export
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )

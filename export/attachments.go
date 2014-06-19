@@ -6,6 +6,7 @@ import (
 	"mime"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	f "github.com/microcosm-cc/export-schemas/go/forum"
