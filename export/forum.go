@@ -17,6 +17,9 @@ type vbForum struct {
 
 func exportForums() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.ForumsPath
+
 	if !fileExists(config.Export.OutputDirectory + f.ForumsPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.ForumsPath))
 	}
@@ -42,6 +45,11 @@ SELECT forumid
 
 	fmt.Println("Exporting forums")
 	runDBTasks(ids, exportForum)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.ForumsPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportForum(id int64) error {
@@ -243,6 +251,11 @@ SELECT usergroupid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }

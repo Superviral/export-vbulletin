@@ -9,6 +9,9 @@ import (
 
 func exportFollows() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.FollowsPath
+
 	if !fileExists(config.Export.OutputDirectory + f.FollowsPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.FollowsPath))
 	}
@@ -31,6 +34,11 @@ SELECT userid
 
 	fmt.Println("Exporting follows")
 	runDBTasks(ids, exportFollow)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.FollowsPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportFollow(id int64) error {
@@ -258,6 +266,11 @@ SELECT threadid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }

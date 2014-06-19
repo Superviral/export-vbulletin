@@ -16,6 +16,9 @@ type vbUserGroup struct {
 
 func exportRoles() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.RolesPath
+
 	if !fileExists(config.Export.OutputDirectory + f.RolesPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.RolesPath))
 	}
@@ -38,6 +41,11 @@ SELECT usergroupid
 
 	fmt.Println("Exporting usergroups")
 	runDBTasks(ids, exportRole)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.RolesPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportRole(id int64) error {
@@ -327,6 +335,11 @@ SELECT userid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }

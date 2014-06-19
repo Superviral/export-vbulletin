@@ -24,6 +24,9 @@ type vbPMRecipient struct {
 
 func exportMessages() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.MessagesPath
+
 	if !fileExists(config.Export.OutputDirectory + f.MessagesPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.MessagesPath))
 	}
@@ -46,6 +49,11 @@ SELECT pmtextid
 
 	fmt.Println("Exporting messages")
 	runDBTasks(ids, exportMessage)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.MessagesPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportMessage(id int64) error {
@@ -150,6 +158,11 @@ SELECT userid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }

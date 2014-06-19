@@ -24,6 +24,9 @@ type vbThread struct {
 
 func exportConversations() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.ConversationsPath
+
 	if !fileExists(config.Export.OutputDirectory + f.ConversationsPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.ConversationsPath))
 	}
@@ -46,6 +49,11 @@ SELECT threadid
 
 	fmt.Println("Exporting conversations")
 	runDBTasks(ids, exportConversation)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.ConversationsPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportConversation(id int64) error {
@@ -126,6 +134,11 @@ SELECT t.threadid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }

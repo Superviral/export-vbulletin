@@ -27,6 +27,9 @@ type vbAttachment struct {
 
 func exportAttachments() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.AttachmentsPath
+
 	if !fileExists(config.Export.OutputDirectory + f.AttachmentsPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.AttachmentsPath))
 	}
@@ -49,6 +52,11 @@ SELECT attachmentid
 
 	fmt.Println("Exporting attachments")
 	runDBTasks(ids, exportAttachment)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.AttachmentsPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportAttachment(id int64) error {
@@ -123,6 +131,11 @@ SELECT a.attachmentid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }

@@ -22,6 +22,9 @@ type vbPost struct {
 
 func exportComments() {
 
+	exportedItems = f.DirIndex{}
+	exportedItems.Type = f.CommentsPath
+
 	if !fileExists(config.Export.OutputDirectory + f.CommentsPath) {
 		handleErr(mkDirAll(config.Export.OutputDirectory + f.CommentsPath))
 	}
@@ -44,6 +47,11 @@ SELECT postid
 
 	fmt.Println("Exporting comments")
 	runDBTasks(ids, exportComment)
+
+	handleErr(writeFile(
+		config.Export.OutputDirectory+f.CommentsPath+"index.json",
+		exportedItems,
+	))
 }
 
 func exportComment(id int64) error {
@@ -119,6 +127,11 @@ SELECT postid
 	if err != nil {
 		return err
 	}
+
+	exportedItems.Files = append(exportedItems.Files, f.DirFile{
+		ID:   ex.ID,
+		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
+	})
 
 	return nil
 }
