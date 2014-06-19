@@ -11,6 +11,8 @@
 #
 #   install:      Builds, tests and installs the code locally
 
+.PHONY: all fmt build vet lint test clean install
+
 # Sub-directories containing cod to be vetted or linted
 CODE = export
 
@@ -18,23 +20,25 @@ CODE = export
 all: clean fmt vet test install
 
 fmt:
-	gofmt -w ./$*
+	@gofmt -w ./$*
 
+build: export GOOS=linux
+build: GOARCH=amd64
 build: clean
-	GOOS=linux GOARCH=amd64 go build
+	@go build
 
 vet:
-	go tool vet $(CODE)
+	@go tool vet $(CODE)
 
 lint:
-	golint $(CODE) main.go
+	@golint $(CODE) main.go
 
 test:
-	go test -v -cover ./...
+	@go test -v -cover ./...
 
 clean:
-	find $(GOPATH)/bin -name export-vbulletin -delete
-	find . -name export-vbulletin -delete
+	@find $(GOPATH)/bin -name export-vbulletin -delete
+	@find . -name export-vbulletin -delete
 
 install: clean
-	go install
+	@go install

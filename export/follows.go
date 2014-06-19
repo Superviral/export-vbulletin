@@ -268,10 +268,12 @@ SELECT threadid
 		return err
 	}
 
+	exportedItemsLock.Lock()
 	exportedItems.Files = append(exportedItems.Files, f.DirFile{
 		ID:   id,
 		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
 	})
+	exportedItemsLock.Unlock()
 
 	return nil
 }

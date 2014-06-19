@@ -253,10 +253,12 @@ SELECT usergroupid
 		return err
 	}
 
+	exportedItemsLock.Lock()
 	exportedItems.Files = append(exportedItems.Files, f.DirFile{
 		ID:   ex.ID,
 		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
 	})
+	exportedItemsLock.Unlock()
 
 	return nil
 }

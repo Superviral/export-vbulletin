@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 
 	f "github.com/microcosm-cc/export-schemas/go/forum"
 )
@@ -20,7 +21,10 @@ func fileExists(path string) bool {
 	return true
 }
 
-var exportedItems f.DirIndex
+var (
+	exportedItems     f.DirIndex
+	exportedItemsLock sync.Mutex
+)
 
 // Splits a filename such as 1234567890 into two parts
 //   path = 123/456/789

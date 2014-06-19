@@ -232,11 +232,13 @@ SELECT dateline
 		return err
 	}
 
+	exportedItemsLock.Lock()
 	exportedItems.Files = append(exportedItems.Files, f.DirFile{
 		ID:    ex.ID,
 		Path:  strings.Replace(filename, config.Export.OutputDirectory, "", 1),
 		Email: ex.Email,
 	})
+	exportedItemsLock.Unlock()
 
 	return nil
 }
