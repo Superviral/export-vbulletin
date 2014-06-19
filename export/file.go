@@ -47,9 +47,8 @@ func splitFilename(input string) (string, string) {
 	}
 
 	path = strings.Join(parts, "/")
-
-	if strings.HasPrefix("/", path) {
-		path = path[1:]
+	if strings.HasPrefix(path, "/") {
+		path = strings.Replace(path, "/", "", 1)
 	}
 
 	return path, filename
