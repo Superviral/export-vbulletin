@@ -70,12 +70,14 @@ func exportRole(id int64) error {
 		return nil
 	}
 
+	var publicGroup int64
 	vb := vbUserGroup{}
 	err := db.QueryRow(`
 SELECT usergroupid
       ,title
       ,description
       ,forumpermissions
+      ,ispublicgroup
   FROM `+config.DB.TablePrefix+`usergroup
  WHERE usergroupid = ?`,
 		id,
@@ -84,6 +86,7 @@ SELECT usergroupid
 		&vb.Title,
 		&vb.Description,
 		&vb.ForumPermissions,
+		&publicGroup,
 	)
 	if err != nil {
 		return err
@@ -94,6 +97,10 @@ SELECT usergroupid
 	ex.Name = vb.Title
 	ex.Text = vb.Description
 	ex.Banned = (vb.ForumPermissions == 0)
+
+	if publicGroup == 0 {
+		ex.DefaultRole = true
+	}
 
 	// From vBulletin includes/xml/bitfield_vbulletin.xml
 	// <group name="forumpermissions">
