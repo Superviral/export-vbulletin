@@ -170,6 +170,17 @@ SELECT userid
 	rows.Close()
 	ex.Moderators = mods
 
+	// TODO: this is a better query
+	// SELECT p.usergroupid
+	//       ,p.forumid
+	//       ,p.forumpermissions
+	//       ,FIND_IN_SET(p.forumid, f.parentlist) AS depth
+	//   FROM vb_forumpermission p
+	//       ,vb_forum f
+	//  WHERE f.forumid = 15
+	//    AND FIND_IN_SET(p.forumid, f.parentlist) > 0
+	//  ORDER BY depth, usergroupid
+
 	// Forum specific usergroup permissions
 	rows, err = db.Query(`
 SELECT usergroupid
