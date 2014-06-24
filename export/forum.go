@@ -180,7 +180,7 @@ SELECT p.usergroupid
       ,`+config.DB.TablePrefix+`forum f
  WHERE f.forumid = ?
    AND FIND_IN_SET(p.forumid, f.parentlist) > 0
- ORDER BY depth, usergroupid`,
+ ORDER BY FIND_IN_SET(p.forumid, f.parentlist) ASC, usergroupid ASC`,
 		id,
 	)
 	if err != nil {
