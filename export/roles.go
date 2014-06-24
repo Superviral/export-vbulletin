@@ -164,11 +164,13 @@ SELECT usergroupid
 		// Guests in vBulletin
 		ex.IncludeGuests = true
 		err = writeFile(filename, ex)
+		addExportFile(ex.ID, filename)
 		return err
 	case 2:
 		// Registered users in vBulletin
 		ex.IncludeRegistered = true
 		err = writeFile(filename, ex)
+		addExportFile(ex.ID, filename)
 		return err
 	case 3, 4:
 		// Awaiting email confirmation, covered by group id == 2
@@ -358,12 +360,17 @@ SELECT userid
 		return err
 	}
 
+	addExportFile(ex.ID, filename)
+
+	return nil
+}
+
+func addExportFile(id int64, filename string) {
 	exportedItemsLock.Lock()
 	exportedItems.Files = append(exportedItems.Files, f.DirFile{
-		ID:   ex.ID,
+		ID:   id,
 		Path: strings.Replace(filename, config.Export.OutputDirectory, "", 1),
 	})
 	exportedItemsLock.Unlock()
 
-	return nil
 }
