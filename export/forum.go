@@ -171,22 +171,16 @@ SELECT userid
 	ex.Moderators = mods
 
 	// TODO: this is a better query
-	// SELECT p.usergroupid
-	//       ,p.forumid
-	//       ,p.forumpermissions
-	//       ,FIND_IN_SET(p.forumid, f.parentlist) AS depth
-	//   FROM vb_forumpermission p
-	//       ,vb_forum f
-	//  WHERE f.forumid = 15
-	//    AND FIND_IN_SET(p.forumid, f.parentlist) > 0
-	//  ORDER BY depth, usergroupid
 
 	// Forum specific usergroup permissions
 	rows, err = db.Query(`
-SELECT usergroupid
-      ,forumpermissions
-  FROM `+config.DB.TablePrefix+`forumpermission
- WHERE forumid = ?`,
+SELECT p.usergroupid
+      ,p.forumpermissions
+  FROM `+config.DB.TablePrefix+`forumpermission p
+      ,`+config.DB.TablePrefix+`forum f
+ WHERE f.forumid = ?
+   AND FIND_IN_SET(p.forumid, f.parentlist) > 0
+ ORDER BY depth, usergroupid`,
 		id,
 	)
 	if err != nil {
@@ -195,6 +189,7 @@ SELECT usergroupid
 	defer rows.Close()
 
 	usergroups := []f.Role{}
+	seen := make(map[int64]bool)
 	for rows.Next() {
 		var (
 			usergroupid      int64
@@ -206,6 +201,13 @@ SELECT usergroupid
 		)
 		if err != nil {
 			return err
+		}
+
+		// Skip already seen usergroups. This occurs when permissions are
+		// inherited, the lowest level depth determines priority which is
+		// handled by the SQL query ordering by depth
+		if _, ok := seen[usergroupid]; ok {
+			continue
 		}
 
 		// From vBulletin includes/xml/bitfield_vbulletin.xml
@@ -251,6 +253,7 @@ SELECT usergroupid
 		ug.ForumPermissions = perms
 
 		usergroups = append(usergroups, ug)
+		seen[usergroupid] = true
 	}
 	err = rows.Err()
 	if err != nil {
