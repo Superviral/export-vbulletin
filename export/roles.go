@@ -262,8 +262,8 @@ SELECT date
 		//   comments OR date
 		//     1, 2, 5, 6
 		const (
-			postsKey string = "comment_count"
-			dateKey  string = "days_since_registering"
+			postsKey string = "commentCount"
+			dateKey  string = "daysRegistered"
 		)
 
 		for _, promotion := range promotions {
