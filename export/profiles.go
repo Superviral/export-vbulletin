@@ -216,7 +216,7 @@ SELECT dateline
 			OnID:   id,
 		})
 		exa.Name = vba.FileName
-		exa.ContentSize = vba.FileSize
+		exa.ContentSize = int32(vba.FileSize)
 		exa.MimeType = getMimeTypeFromFileName(vba.FileName)
 		exa.ContentURL = "data:" + exa.MimeType + ";base64," +
 			base64.StdEncoding.EncodeToString(vba.FileData)

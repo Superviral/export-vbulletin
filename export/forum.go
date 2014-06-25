@@ -69,7 +69,6 @@ func exportForum(id int64) error {
 	filename := fmt.Sprintf("%s/%s.json", path, name)
 
 	// Don't export if we've exported already
-
 	if fileExists(filename) {
 		return nil
 	}
@@ -137,6 +136,11 @@ SELECT MIN(userid)
 	// 	<bitfield name="showonforumjump">65536</bitfield>
 	// 	<bitfield name="prefixrequired">131072</bitfield>
 	// </group>
+
+	if vb.Options&1 != 0 {
+		// Forum is not active and cannot be accessed, remove from import
+		return nil
+	}
 
 	ex.Open = vb.Options&2 != 0
 	ex.Moderated = vb.Options&16 != 0

@@ -123,7 +123,7 @@ SELECT a.attachmentid
 		OnID:   vb.PostID,
 	})
 	ex.Name = vb.FileName
-	ex.ContentSize = vb.FileSize
+	ex.ContentSize = int32(vb.FileSize)
 	ex.MimeType = getMimeTypeFromFileName("name." + vb.Extension)
 	ex.ContentURL = "data:" + ex.MimeType + ";base64," +
 		base64.StdEncoding.EncodeToString(vb.FileData)
