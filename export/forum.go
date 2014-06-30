@@ -137,7 +137,7 @@ SELECT MIN(userid)
 	// 	<bitfield name="prefixrequired">131072</bitfield>
 	// </group>
 
-	if vb.Options&1 != 0 {
+	if vb.Options&1 != 1 {
 		// Forum is not active and cannot be accessed, remove from import
 		return nil
 	}
